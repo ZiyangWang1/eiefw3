@@ -46,6 +46,10 @@ Function Definitions
 /*--------------------------------------------------------------------------------------------------------------------*/
 bool BLEIntegrationInitialize(void)
 {
+  NRF_GPIO->OUTSET = P0_29_LED_RED;
+  NRF_GPIO->OUTSET = P0_28_LED_YELLOW;
+  NRF_GPIO->OUTSET = P0_27_LED_GREEN;
+  NRF_GPIO->OUTSET = P0_26_LED_BLUE;
   return true;
 }
 
