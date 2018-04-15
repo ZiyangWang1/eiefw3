@@ -33,11 +33,11 @@
         </option>
         <option>
           <name>MacOverride</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>MacFile</name>
-          <state></state>
+          <state>C:\Users\Darren Wang\Documents\GitHub\eiefw3\nRF51422\exec.mac</state>
         </option>
         <option>
           <name>MemOverride</name>
