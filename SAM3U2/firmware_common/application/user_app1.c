@@ -1,7 +1,5 @@
-/*!*********************************************************************************************************************
-@file user_app1.c                                                                
-@brief User's tasks / applications are written here.  This description
-should be replaced by something specific to the task.
+/**********************************************************************************************************************
+File: user_app1.c                                                                
 
 ----------------------------------------------------------------------------------------------------------------------
 To start a new task using this user_app1 as a template:
@@ -17,22 +15,21 @@ To start a new task using this user_app1 as a template:
 10. Delete this text (between the dashed lines) and update the Description below to describe your task
 ----------------------------------------------------------------------------------------------------------------------
 
+Description:
+This is a user_app1.c file template 
+
 ------------------------------------------------------------------------------------------------------------------------
-GLOBALS
-- NONE
+API:
 
-CONSTANTS
-- NONE
+Public functions:
 
-TYPES
-- NONE
 
-PUBLIC FUNCTIONS
-- NONE
+Protected System functions:
+void UserApp1Initialize(void)
+Runs required initialzation for the task.  Should only be called once in main init section.
 
-PROTECTED FUNCTIONS
-- void UserApp1Initialize(void)
-- void UserApp1RunActiveState(void)
+void UserApp1RunActiveState(void)
+Runs current task state.  Should only be called once in main loop.
 
 
 **********************************************************************************************************************/
@@ -41,108 +38,182 @@ PROTECTED FUNCTIONS
 
 /***********************************************************************************************************************
 Global variable definitions with scope across entire project.
-All Global variable names shall start with "G_<type>UserApp1"
+All Global variable names shall start with "G_UserApp1"
 ***********************************************************************************************************************/
 /* New variables */
-volatile u32 G_u32UserApp1Flags;                          /*!< @brief Global state flags */
-
+volatile u32 G_u32UserApp1Flags;                       /* Global state flags */
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Existing variables (defined in other files -- should all contain the "extern" keyword) */
-extern volatile u32 G_u32SystemTime1ms;                   /*!< @brief From main.c */
-extern volatile u32 G_u32SystemTime1s;                    /*!< @brief From main.c */
-extern volatile u32 G_u32SystemFlags;                     /*!< @brief From main.c */
-extern volatile u32 G_u32ApplicationFlags;                /*!< @brief From main.c */
+extern volatile u32 G_u32SystemFlags;                  /* From main.c */
+extern volatile u32 G_u32ApplicationFlags;             /* From main.c */
+
+extern volatile u32 G_u32SystemTime1ms;                /* From board-specific source file */
+extern volatile u32 G_u32SystemTime1s;                 /* From board-specific source file */
 
 
 /***********************************************************************************************************************
 Global variable definitions with scope limited to this local application.
-Variable names shall start with "UserApp1_<type>" and be declared as static.
+Variable names shall start with "UserApp1_" and be declared as static.
 ***********************************************************************************************************************/
-static fnCode_type UserApp1_pfStateMachine;               /*!< @brief The state machine function pointer */
-//static u32 UserApp1_u32Timeout;                           /*!< @brief Timeout counter used across states */
-
+static fnCode_type UserApp1_StateMachine;            /* The state machine function pointer */
+//static u32 UserApp1_u32Timeout;                      /* Timeout counter used across states */
+static SspPeripheralType* UserApp_SPI;
+static u8 UserApp1_au8RxBuffer[USERAPP_RX_BUFFER_SIZE];
+static u8* UserApp1_pu8RxBufferNextChar;
+static u8* UserApp1_pu8RxBufferParser;
+static u8 UserApp1_au8StartupMsg[] = "\n\n\r*** UserApp SPI Ready ***\n\r";
 
 /**********************************************************************************************************************
 Function Definitions
 **********************************************************************************************************************/
 
 /*--------------------------------------------------------------------------------------------------------------------*/
-/*! @publicsection */                                                                                            
+/* Public functions                                                                                                   */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------------------------------------------------*/
-/*! @protectedsection */                                                                                            
+/* Protected functions                                                                                                */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-/*!--------------------------------------------------------------------------------------------------------------------
-@fn void UserApp1Initialize(void)
+/*--------------------------------------------------------------------------------------------------------------------
+Function: SlaveTxFlowCallback
 
-@brief
-Initializes the State Machine and its variables.
+Description:
 
-Should only be called once in main init section.
 
 Requires:
-- NONE
+  -
 
 Promises:
-- NONE
+  - 
+*/
+void SlaveTxFlowCallback(void)
+{
+  
+}
 
+/*--------------------------------------------------------------------------------------------------------------------
+Function: SlaveRxFlowCallback
+
+Description:
+Call back function used when character received.
+
+Requires:
+  - None
+
+Promises:
+  - Safely advances UserApp1_pu8RxBufferNextChar.
+*/
+void SlaveRxFlowCallback(void)
+{
+  /* Safely advances the NextChar pointer */
+  UserApp1_pu8RxBufferNextChar++;
+  if(UserApp1_pu8RxBufferNextChar == &UserApp1_au8RxBuffer[USERAPP_RX_BUFFER_SIZE])
+  {
+    UserApp1_pu8RxBufferNextChar = &UserApp1_au8RxBuffer[0];
+  }
+  
+}
+
+
+
+/*--------------------------------------------------------------------------------------------------------------------
+Function: UserApp1Initialize
+
+Description:
+Initializes the State Machine and its variables.
+
+Requires:
+  -
+
+Promises:
+  - 
 */
 void UserApp1Initialize(void)
 {
+  SspConfigurationType UserAppSspConfig;
+  
+  UserAppSspConfig.SspPeripheral = USART2;
+  UserAppSspConfig.pCsGpioAddress = AT91C_BASE_PIOB;
+  UserAppSspConfig.u32CsPin = AT91C_PIO_PB22;
+  UserAppSspConfig.eBitOrder = LSB_FIRST;
+  UserAppSspConfig.fnSlaveTxFlowCallback = SlaveTxFlowCallback;
+  UserAppSspConfig.fnSlaveRxFlowCallback = SlaveRxFlowCallback;
+  UserAppSspConfig.pu8RxBufferAddress = &UserApp1_au8RxBuffer[0];
+  UserAppSspConfig.ppu8RxNextByte = &UserApp1_pu8RxBufferNextChar;
+  UserAppSspConfig.u16RxBufferSize = USERAPP_RX_BUFFER_SIZE;
+ 
+  UserApp_SPI = SspRequest(&UserAppSspConfig);
+  
   /* If good initialization, set state to Idle */
-  if( 1 )
+  if( UserApp_SPI != NULL )
   {
-    UserApp1_pfStateMachine = UserApp1SM_Idle;
+    DebugPrintf(UserApp1_au8StartupMsg);
+    UserApp1_StateMachine = UserApp1SM_Idle;
   }
   else
   {
     /* The task isn't properly initialized, so shut it down and don't run */
-    UserApp1_pfStateMachine = UserApp1SM_Error;
+    UserApp1_StateMachine = UserApp1SM_Error;
   }
 
 } /* end UserApp1Initialize() */
 
   
-/*!----------------------------------------------------------------------------------------------------------------------
-@fn void UserApp1RunActiveState(void)
+/*----------------------------------------------------------------------------------------------------------------------
+Function UserApp1RunActiveState()
 
-@brief Selects and runs one iteration of the current state in the state machine.
-
+Description:
+Selects and runs one iteration of the current state in the state machine.
 All state machines have a TOTAL of 1ms to execute, so on average n state machines
 may take 1ms / n to execute.
 
 Requires:
-- State machine function pointer points at current state
+  - State machine function pointer points at current state
 
 Promises:
-- Calls the function to pointed by the state machine function pointer
-
+  - Calls the function to pointed by the state machine function pointer
 */
 void UserApp1RunActiveState(void)
 {
-  UserApp1_pfStateMachine();
+  UserApp1_StateMachine();
 
 } /* end UserApp1RunActiveState */
 
 
-/*------------------------------------------------------------------------------------------------------------------*/
-/*! @privatesection */                                                                                            
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Private functions                                                                                                  */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 
 /**********************************************************************************************************************
 State Machine Function Definitions
 **********************************************************************************************************************/
+
 /*-------------------------------------------------------------------------------------------------------------------*/
-/* What does this state do? */
+/* Wait for ??? */
 static void UserApp1SM_Idle(void)
 {
-    
+  u8 au8CurrentByte[] = " ";
+  
+  /* Parse any new characters that have come in until no more chars */
+  while( (UserApp1_pu8RxBufferParser != UserApp1_pu8RxBufferNextChar))
+  {
+    /* Grab a copy of the current byte and echo it back */
+    au8CurrentByte[0] = *UserApp1_pu8RxBufferParser;
+    DebugPrintf(au8CurrentByte);
+    UserApp1_pu8RxBufferParser++;
+    if(UserApp1_pu8RxBufferParser >= &UserApp1_au8RxBuffer[USERAPP_RX_BUFFER_SIZE])
+    {
+      UserApp1_pu8RxBufferParser = &UserApp1_au8RxBuffer[0];
+    }
+    LedToggle(BLUE);
+  }
+  
+
 } /* end UserApp1SM_Idle() */
-     
+    
 
 /*-------------------------------------------------------------------------------------------------------------------*/
 /* Handle an error */
