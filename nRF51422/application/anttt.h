@@ -51,6 +51,7 @@ void AntttRunActiveState(void);
 /* SM functions                                                                                                  */
 /*--------------------------------------------------------------------------------------------------------------------*/
 static void AntttSM_Idle(void);
+static void AntttSM_Error(void);
 
 
 

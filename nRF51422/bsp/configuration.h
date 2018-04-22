@@ -78,6 +78,8 @@ Includes
 
 /* Driver header files */
 #include "leds_anttt.h" 
+#include "spimaster.h"
+
 
 /* Application header files */
 #include "anttt.h"

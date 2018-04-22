@@ -58,12 +58,31 @@ Promises:
 */
 void AntttInitialize(void)
 {
-  NRF_GPIO->OUTSET = P0_29_LED_RED;
-  NRF_GPIO->OUTSET = P0_28_LED_YELLOW;
-  NRF_GPIO->OUTSET = P0_27_LED_GREEN;
-  NRF_GPIO->OUTSET = P0_26_LED_BLUE;
-  Anttt_pfnStateMachine = AntttSM_Idle;
+  spi_master_config_t antttSpiMaster;
+
+  antttSpiMaster.SPI_Freq = SPI_FREQUENCY_FREQUENCY_M1;
+  antttSpiMaster.SPI_Pin_SCK = P0_11_INDEX;
+  antttSpiMaster.SPI_Pin_MISO = P0_12_INDEX;
+  antttSpiMaster.SPI_Pin_MOSI = P0_13_INDEX;
+  antttSpiMaster.SPI_Pin_SS = P0_10_INDEX;
+  antttSpiMaster.SPI_CONFIG_ORDER = SPI_CONFIG_ORDER_LsbFirst;
+  antttSpiMaster.SPI_CONFIG_CPOL = SPI_CONFIG_CPOL_ActiveHigh;
+  antttSpiMaster.SPI_CONFIG_CPHA = SPI_CONFIG_CPHA_Leading;
+  antttSpiMaster.p_rx_buffer = NULL;
+  antttSpiMaster.rx_length = 0;
   
+  NRF_GPIO->OUTSET = P0_28_LED_YELLOW;
+  
+  if(SpiMasterOpen(&antttSpiMaster))
+  {
+    NRF_GPIO->OUTSET = P0_27_LED_GREEN;
+    Anttt_pfnStateMachine = AntttSM_Idle;
+  }
+  else
+  {
+    NRF_GPIO->OUTSET = P0_29_LED_RED;
+    Anttt_pfnStateMachine = AntttSM_Error;
+  }
 } /* end AntttInitialize() */
 
 
@@ -101,9 +120,33 @@ State: AntttSM_Idle
 */
 static void AntttSM_Idle(void)
 {
-    
+  u8 u8TestByte = 100;
+  
+  if(SpiMasterSendByte(&u8TestByte))
+  {
+    NRF_GPIO->OUTSET = P0_26_LED_BLUE;
+    nrf_delay_us(100000);
+    NRF_SPI0->EVENTS_READY = 0;
+    NRF_GPIO->OUTCLR = P0_26_LED_BLUE;
+  }
+  else
+  {
+    NRF_GPIO->OUTSET = P0_29_LED_RED;
+    nrf_delay_us(100000);
+    NRF_GPIO->OUTCLR = P0_29_LED_RED;
+  }
+  nrf_delay_us(1000000);
+  
 } 
 
+     
+/*--------------------------------------------------------------------------------------------------------------------
+State: AntttSM_Error
+*/
+static void AntttSM_Error(void)
+{
+    
+} 
 
 
 /*--------------------------------------------------------------------------------------------------------------------*/
