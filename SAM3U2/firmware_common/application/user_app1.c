@@ -60,8 +60,8 @@ static fnCode_type UserApp1_StateMachine;            /* The state machine functi
 //static u32 UserApp1_u32Timeout;                      /* Timeout counter used across states */
 static SspPeripheralType* UserApp_SPI;
 static u8 UserApp1_au8RxBuffer[USERAPP_RX_BUFFER_SIZE];
-static u8* UserApp1_pu8RxBufferNextChar;
-static u8* UserApp1_pu8RxBufferParser;
+static u8* UserApp1_pu8RxBufferNextChar = &UserApp1_au8RxBuffer[0];
+static u8* UserApp1_pu8RxBufferParser = &UserApp1_au8RxBuffer [0];
 static u8 UserApp1_au8StartupMsg[] = "\n\n\r*** UserApp SPI Ready ***\n\r";
 
 /**********************************************************************************************************************
