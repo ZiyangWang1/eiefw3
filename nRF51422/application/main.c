@@ -72,9 +72,11 @@ void main(void)
     
   /* Driver initialization */
 
+  LedsInitialize();
+  SpiMasterInitialize();
   ANTIntegrationInitialize();
   BLEIntegrationInitialize();
-  bleperipheralInitialize();
+  //bleperipheralInitialize();
   
   /* Application initialization */
   AntttInitialize();
@@ -85,6 +87,7 @@ void main(void)
   /* Main loop */  
   while(1)
   {
+    SpiMasterRunActiveState();
     SocIntegrationHandler();
     AntttRunActiveState();
    

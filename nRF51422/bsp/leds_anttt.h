@@ -20,6 +20,8 @@ RESULT FROM USING THIS FIRMWARE IN WHOLE OR IN PART.
 Type Definitions
 ******************************************************************************/
 
+typedef enum {BLUE = 0, GREEN, YELLOW, RED} LedNumberType;
+
 /******************************************************************************
 * Constants
 ******************************************************************************/
@@ -29,11 +31,14 @@ Type Definitions
 * Function Declarations
 ******************************************************************************/
 /* Public Functions */
+void LedOn(LedNumberType eLED_);
+void LedOff(LedNumberType eLED_);
+void LedToggle(LedNumberType eLED_);
 
 /* Protected Functions */
 
 /* Private Functions */
-
+void LedsInitialize(void);
 
 /******************************************************************************
 * State Machine Function Prototypes

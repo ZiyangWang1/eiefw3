@@ -68,9 +68,17 @@ bool SpiMasterOpen(spi_master_config_t * p_spi_master_config);
 bool SpiMasterSendByte(u8 * p_tx_buf);
 
 /* Protected Functions */
+void SpiMasterInitialize(void);
+void SpiMasterRunActiveState(void);
 
 /* Private Functions */
 
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* SM functions                                                                                                  */
+/*--------------------------------------------------------------------------------------------------------------------*/
+static void SpiMasterSM_Idle(void);
+static void SpiMasterSM_Error(void);
 
 /******************************************************************************
 * State Machine Function Prototypes

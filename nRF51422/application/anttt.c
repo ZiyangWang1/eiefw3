@@ -23,7 +23,7 @@ extern volatile u32 G_u32SystemFlags;                  /* From main.c */
 extern volatile u32 G_u32SystemTime1ms;                /* From board-specific source file */
 extern volatile u32 G_u32SystemTime1s;                 /* From board-specific source file */
 extern volatile u32 G_u32BPEngenuicsFlags;             /* From bleperipheral_engenuics.c  */
-
+extern volatile u8 SpiMaster_u8RxBuffer;
 
 /***********************************************************************************************************************
 Global variable definitions with scope limited to this local application.
@@ -66,23 +66,19 @@ void AntttInitialize(void)
   antttSpiMaster.SPI_Pin_MOSI = P0_13_INDEX;
   antttSpiMaster.SPI_Pin_SS = P0_10_INDEX;
   antttSpiMaster.SPI_CONFIG_ORDER = SPI_CONFIG_ORDER_LsbFirst;
-  antttSpiMaster.SPI_CONFIG_CPOL = SPI_CONFIG_CPOL_ActiveHigh;
-  antttSpiMaster.SPI_CONFIG_CPHA = SPI_CONFIG_CPHA_Leading;
+  antttSpiMaster.SPI_CONFIG_CPOL = SPI_CONFIG_CPOL_ActiveLow;
+  antttSpiMaster.SPI_CONFIG_CPHA = SPI_CONFIG_CPHA_Trailing;
   antttSpiMaster.p_rx_buffer = NULL;
   antttSpiMaster.rx_length = 0;
- 
-  NRF_GPIO->OUTSET = P0_28_LED_YELLOW;
   
   if(SpiMasterOpen(&antttSpiMaster))
   {
     NRF_GPIO->OUTCLR = P0_10_SPI_CS;
-    NRF_GPIO->OUTCLR = P0_13_SPI_MOSI;
-    NRF_GPIO->OUTCLR = P0_11_SPI_SCK;
     Anttt_pfnStateMachine = AntttSM_Idle;
   }
   else
   {
-    NRF_GPIO->OUTSET = P0_29_LED_RED;
+    LedOn(RED);
     Anttt_pfnStateMachine = AntttSM_Error;
   }
 } /* end AntttInitialize() */
@@ -122,31 +118,18 @@ State: AntttSM_Idle
 */
 static void AntttSM_Idle(void)
 {
-  u8 u8TestByte = 65;
-  u8 u8RxBuffer = 0;
+  static u8 u8Status = 0x30;
   
-  if(SpiMasterSendByte(&u8TestByte))
+  SpiMasterSendByte(&u8Status);
+  nrf_delay_us(50000);
+  switch(SpiMaster_u8RxBuffer)
   {
-    NRF_GPIO->OUTSET = P0_26_LED_BLUE;
-    nrf_delay_us(100000);
-    NRF_GPIO->OUTCLR = P0_26_LED_BLUE;
+  case 0x51: LedToggle(BLUE);u8Status = 0x31;break;
+  case 0x52: LedToggle(GREEN);u8Status = 0x32;break;
+  case 0x53: LedToggle(YELLOW);u8Status = 0x33;break;
+  case 0x54: LedToggle(RED);u8Status = 0x34;break;
+  default: ;
   }
-  else
-  {
-    NRF_GPIO->OUTSET = P0_29_LED_RED;
-    nrf_delay_us(100000);
-    NRF_GPIO->OUTCLR = P0_29_LED_RED;
-  }
-  
-  if(NRF_SPI0->EVENTS_READY == 1)
-  {
-    u8RxBuffer = NRF_SPI0->RXD;
-    NRF_GPIO->OUTSET = P0_27_LED_GREEN;
-    NRF_SPI0->EVENTS_READY = 0;
-    nrf_delay_us(100000);
-    NRF_GPIO->OUTCLR = P0_27_LED_GREEN;
-  }
-  nrf_delay_us(1000000);
   
 } 
 

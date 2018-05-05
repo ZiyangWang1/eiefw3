@@ -137,6 +137,7 @@ void UserApp1Initialize(void)
   UserAppSspConfig.SspPeripheral = USART2;
   UserAppSspConfig.pCsGpioAddress = AT91C_BASE_PIOB;
   UserAppSspConfig.u32CsPin = AT91C_PIO_PB22;
+  UserAppSspConfig.eSspMode = SPI_SLAVE_FLOW_CONTROL;
   UserAppSspConfig.eBitOrder = LSB_FIRST;
   UserAppSspConfig.fnSlaveTxFlowCallback = SlaveTxFlowCallback;
   UserAppSspConfig.fnSlaveRxFlowCallback = SlaveRxFlowCallback;
@@ -208,7 +209,31 @@ static void UserApp1SM_Idle(void)
     {
       UserApp1_pu8RxBufferParser = &UserApp1_au8RxBuffer[0];
     }
-    LedToggle(BLUE);
+    LedToggle(RED);
+  }
+  
+  if(WasButtonPressed(BUTTON0))
+  {
+   ButtonAcknowledge(BUTTON0);
+   SspWriteByte(UserApp_SPI,0x51);
+  }
+  
+  if(WasButtonPressed(BUTTON1))
+  {
+   ButtonAcknowledge(BUTTON1);
+   SspWriteByte(UserApp_SPI,0x52);
+  }
+  
+  if(WasButtonPressed(BUTTON2))
+  {
+   ButtonAcknowledge(BUTTON2);
+   SspWriteByte(UserApp_SPI,0x53);
+  }
+  
+  if(WasButtonPressed(BUTTON3))
+  {
+   ButtonAcknowledge(BUTTON3);
+   SspWriteByte(UserApp_SPI,0x54);
   }
   
 

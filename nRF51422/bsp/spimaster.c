@@ -27,7 +27,8 @@ extern volatile u32 G_u32ApplicationFlags;             /* From main.c */
 Global variable definitions with scope limited to this local application.
 Variable names shall start with "Spi_" and be declared as static.
 ***********************************************************************************************************************/
-
+static fnCode_type SpiMaster_pfnStateMachine;              /* The application state machine function pointer */
+u8 SpiMaster_u8RxBuffer = 0;
  
 
 /***********************************************************************************************************************
@@ -57,6 +58,14 @@ bool SpiMasterOpen(spi_master_config_t * p_spi_master_config)
   nrf_gpio_cfg_output(p_spi_master_config->SPI_Pin_MOSI);
   nrf_gpio_cfg_input(p_spi_master_config->SPI_Pin_MISO, NRF_GPIO_PIN_NOPULL);
   
+  switch(p_spi_master_config->SPI_CONFIG_CPOL)
+  {
+  case SPI_CONFIG_CPOL_ActiveHigh: NRF_GPIO->OUTCLR = P0_11_SPI_SCK;break;
+  case SPI_CONFIG_CPOL_ActiveLow: NRF_GPIO->OUTSET = P0_11_SPI_SCK;break;
+  default: return false;
+  }
+  
+  NRF_GPIO->OUTCLR = P0_13_SPI_MOSI;
   /* Configure SPI hardware */
   NRF_SPI0->PSELSCK  = p_spi_master_config->SPI_Pin_SCK;
   NRF_SPI0->PSELMOSI = p_spi_master_config->SPI_Pin_MOSI;
@@ -97,14 +106,76 @@ bool SpiMasterSendByte(u8 * p_tx_buf)
 /* Protected functions */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
+/*--------------------------------------------------------------------------------------------------------------------
+Function: SpiMasterInitialize
 
+Description:
+Initializes the State Machine and its variables.
+
+Requires:
+
+Promises:
+*/
+void SpiMasterInitialize(void)
+{
+  
+  if(1)
+  {
+    SpiMaster_pfnStateMachine = SpiMasterSM_Idle;
+  }
+  else
+  {
+    SpiMaster_pfnStateMachine = SpiMasterSM_Error;
+  }
+} /* end SpiMasterInitialize() */
+
+
+/*----------------------------------------------------------------------------------------------------------------------
+Function SpiMasterRunActiveState()
+
+Description:
+Selects and runs one iteration of the current state in the state machine.
+
+Requires:
+  - State machine function pointer points at current state
+
+Promises:
+  - Calls the function to pointed by the state machine function pointer
+*/
+void SpiMasterRunActiveState(void)
+{
+  SpiMaster_pfnStateMachine();
+
+} /* end SpiMasterRunActiveState */
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Private functions */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
   
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* State Machine definitions                                                                                          */
+/*--------------------------------------------------------------------------------------------------------------------*/
 
+/*--------------------------------------------------------------------------------------------------------------------
+State: SpiMasterSM_Idle
+*/
+static void SpiMasterSM_Idle(void)
+{
+  if(NRF_SPI0->EVENTS_READY == 1)
+  {
+    SpiMaster_u8RxBuffer = NRF_SPI0->RXD;
+    NRF_SPI0->EVENTS_READY = 0;
+  }
+}
+
+/*--------------------------------------------------------------------------------------------------------------------
+State: SpiMasterSM_Error
+*/
+static void SpiMasterSM_Error(void)
+{
+    
+} 
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* End of File */
