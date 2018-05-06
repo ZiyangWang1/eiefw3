@@ -17,7 +17,9 @@ Constants / Definitions
 #define ANTTT_COMMAND_UNUSED_OFFSET     (u8)0x02
 
 #define ANTTT_COMMAND_ID_MOVE           (u8)0xCC
-#define ANTTT_COMMAND_ID_MOVE_RESP      (u8)0xAC   
+#define ANTTT_COMMAND_ID_MOVE_RESP      (u8)0xAC  
+
+#define ANTTT_RX_BUFFER_SIZE (u8)128
 
 
 

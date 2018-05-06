@@ -28,8 +28,15 @@ Global variable definitions with scope limited to this local application.
 Variable names shall start with "Spi_" and be declared as static.
 ***********************************************************************************************************************/
 static fnCode_type SpiMaster_pfnStateMachine;              /* The application state machine function pointer */
-u8 SpiMaster_u8RxBuffer = 0;
- 
+u8 SpiMaster_u8CurrentByte = 0;
+
+static u8* SpiMaster_pu8RxBuffer = NULL;
+static u8** SpiMaster_ppu8RxNextChar = NULL;
+static u8 SpiMaster_u8RxLength = 0;
+
+static u8 SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE];
+static u8* SpiMaster_pu8TxNextChar = SpiMaster_TxBuffer;
+static u8* SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
 
 /***********************************************************************************************************************
 * Function Definitions
@@ -39,6 +46,17 @@ u8 SpiMaster_u8RxBuffer = 0;
 /* Public functions */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
+/*--------------------------------------------------------------------------------------------------------------------
+Function: SpiMasterOpen
+
+Description:
+Request a spi master peripherals
+
+Requires: 
+  - A pointer to a spi_master_config_t type
+
+Promises:
+*/
 bool SpiMasterOpen(spi_master_config_t * p_spi_master_config)
 {
   /* Check against null */
@@ -84,23 +102,81 @@ bool SpiMasterOpen(spi_master_config_t * p_spi_master_config)
   /* Enable SPI hardware */
   NRF_SPI0->ENABLE = (SPI_ENABLE_ENABLE_Enabled << SPI_ENABLE_ENABLE_Pos);
   
+  SpiMaster_pu8RxBuffer = p_spi_master_config -> p_rx_buffer;
+  SpiMaster_ppu8RxNextChar = p_spi_master_config ->pp_rx_nextchar;
+  SpiMaster_u8RxLength = p_spi_master_config -> rx_length;
   return true;
 }
 
-bool SpiMasterSendByte(u8 * p_tx_buf)
+/*--------------------------------------------------------------------------------------------------------------------
+Function: SpiMasterSendByte
+
+Description:
+Send a single byte to the selected slave
+
+Requires: 
+  - A pointer to the byte
+
+Promises:
+*/
+void SpiMasterSendByte(u8 * p_tx_buf)
 {
-  if(NRF_SPI0->EVENTS_READY == 1)
+    *SpiMaster_pu8UnsendChar = *p_tx_buf;
+    SpiMaster_pu8UnsendChar++;
+    
+    if(SpiMaster_pu8UnsendChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
+    {
+      SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
+    }
+}
+
+/*--------------------------------------------------------------------------------------------------------------------
+Function: SpiMasterSendData
+
+Description:
+Send an data array to the selected slave
+
+Requires: 
+  - A pointer to the array
+  - The length of the array
+
+Promises:
+*/
+bool SpiMasterSendData(u8 * p_tx_buf, u8 u8length)
+{
+  if(u8length > SPI_TX_BUFFER_SIZE)
   {
     return false;
   }
-  else
+  
+  for(int i = 0;i<u8length;i++)
   {
-    NRF_SPI0->TXD = *p_tx_buf;
-    return true;
+    *SpiMaster_pu8UnsendChar = p_tx_buf[i];
+    SpiMaster_pu8UnsendChar++;
+    
+    if(SpiMaster_pu8UnsendChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
+    {
+      SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
+    }
   }
+  return true;
 }
 
+/*--------------------------------------------------------------------------------------------------------------------
+Function: SpiMasterReadByte
 
+Description:
+Read a single byte from the selected slave
+
+Requires: 
+
+Promises:
+  - 
+*/
+bool SpiMasterReadByte(void)
+{
+  return false;
+}
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Protected functions */
@@ -118,6 +194,10 @@ Promises:
 */
 void SpiMasterInitialize(void)
 {
+  for(int i = 0;i<SPI_TX_BUFFER_SIZE;i++)
+  {
+    SpiMaster_TxBuffer[i] = 0;
+  }
   
   if(1)
   {
@@ -164,8 +244,30 @@ static void SpiMasterSM_Idle(void)
 {
   if(NRF_SPI0->EVENTS_READY == 1)
   {
-    SpiMaster_u8RxBuffer = NRF_SPI0->RXD;
+    SpiMaster_u8CurrentByte = NRF_SPI0->RXD;
+    
+    if(SpiMaster_u8CurrentByte != 0)
+    {
+      **SpiMaster_ppu8RxNextChar = SpiMaster_u8CurrentByte;
+      (*SpiMaster_ppu8RxNextChar)++;
+      
+      if(*SpiMaster_ppu8RxNextChar == (SpiMaster_pu8RxBuffer + SpiMaster_u8RxLength))
+      {
+        *SpiMaster_ppu8RxNextChar = SpiMaster_pu8RxBuffer;
+      }
+    }
     NRF_SPI0->EVENTS_READY = 0;
+  }
+
+  if(SpiMaster_pu8TxNextChar != SpiMaster_pu8UnsendChar)
+  {
+    NRF_SPI0->TXD = *SpiMaster_pu8TxNextChar;
+    SpiMaster_pu8TxNextChar++;
+    
+    if(SpiMaster_pu8TxNextChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
+    {
+      SpiMaster_pu8TxNextChar = SpiMaster_TxBuffer;
+    }
   }
 }
 

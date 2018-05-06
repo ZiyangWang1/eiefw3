@@ -23,6 +23,7 @@ Type Definitions
 #define SPI_PIN_DISCONNECTED 0xFFFFFFFF /**< A value used to the PIN deinitialization. */
 #define SPI_DEFAULT_TX_BYTE  0x00       /**< Default byte (used to clock transmission
                                              from slave to the master) */
+#define SPI_TX_BUFFER_SIZE 128
 
 /**@brief Macro for initializing SPI master by default values. */
 #define SPI_MASTER_INIT_DEFAULT                                             \
@@ -51,6 +52,7 @@ typedef struct
     u8 SPI_CONFIG_CPOL;    /**< Serial clock polarity ACTIVEHIGH or ACTIVELOW. */
     u8 SPI_CONFIG_CPHA;    /**< Serial clock phase LEADING or TRAILING. */
     u8 * p_rx_buffer;      /**< A pointer to RX buffer. */
+    u8 ** pp_rx_nextchar;  /**< A pointer to a location where put the next char. */
     u16 rx_length;         /**< A length RX buffer. */
 } spi_master_config_t;
 
@@ -65,7 +67,9 @@ typedef struct
 ******************************************************************************/
 /* Public Functions */
 bool SpiMasterOpen(spi_master_config_t * p_spi_master_config);
-bool SpiMasterSendByte(u8 * p_tx_buf);
+void SpiMasterSendByte(u8 * p_tx_buf);
+bool SpiMasterSendData(u8 * p_tx_buf, u8 u8length);
+bool SpiMasterReadByte(void);
 
 /* Protected Functions */
 void SpiMasterInitialize(void);

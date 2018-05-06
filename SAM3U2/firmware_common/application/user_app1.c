@@ -215,24 +215,64 @@ static void UserApp1SM_Idle(void)
   if(WasButtonPressed(BUTTON0))
   {
    ButtonAcknowledge(BUTTON0);
+   
+   if(AT91C_BASE_PIOB->PIO_ODSR & PB_24_ANT_SRDY)
+   {
+     AT91C_BASE_PIOB->PIO_CODR = PB_24_ANT_SRDY;
+   }
+   else
+   {
+     AT91C_BASE_PIOB->PIO_SODR = PB_24_ANT_SRDY;
+   }
+   
    SspWriteByte(UserApp_SPI,0x51);
   }
   
   if(WasButtonPressed(BUTTON1))
   {
    ButtonAcknowledge(BUTTON1);
+   
+   if(AT91C_BASE_PIOB->PIO_ODSR & PB_24_ANT_SRDY)
+   {
+     AT91C_BASE_PIOB->PIO_CODR = PB_24_ANT_SRDY;
+   }
+   else
+   {
+     AT91C_BASE_PIOB->PIO_SODR = PB_24_ANT_SRDY;
+   }
+   
    SspWriteByte(UserApp_SPI,0x52);
   }
   
   if(WasButtonPressed(BUTTON2))
   {
    ButtonAcknowledge(BUTTON2);
+   
+   if(AT91C_BASE_PIOB->PIO_ODSR & PB_24_ANT_SRDY)
+   {
+     AT91C_BASE_PIOB->PIO_CODR = PB_24_ANT_SRDY;
+   }
+   else
+   {
+     AT91C_BASE_PIOB->PIO_SODR = PB_24_ANT_SRDY;
+   }
+   
    SspWriteByte(UserApp_SPI,0x53);
   }
   
   if(WasButtonPressed(BUTTON3))
   {
    ButtonAcknowledge(BUTTON3);
+   
+   if(AT91C_BASE_PIOB->PIO_ODSR & PB_24_ANT_SRDY)
+   {
+     AT91C_BASE_PIOB->PIO_CODR = PB_24_ANT_SRDY;
+   }
+   else
+   {
+     AT91C_BASE_PIOB->PIO_SODR = PB_24_ANT_SRDY;
+   }
+   
    SspWriteByte(UserApp_SPI,0x54);
   }
   

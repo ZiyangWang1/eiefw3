@@ -54,7 +54,7 @@ Promises:
 */
 bool InterruptsInitialize(void)
 {
-#define SD_PRESENT 0
+#define SD_PRESENT 1
   
 #ifndef SD_PRESENT  
 
@@ -65,6 +65,10 @@ bool InterruptsInitialize(void)
   // Must enable the SoftDevice Interrupt first.
   u32Result |= sd_nvic_SetPriority(SD_EVT_IRQn, NRF_APP_PRIORITY_LOW);
   u32Result |= sd_nvic_EnableIRQ(SD_EVT_IRQn);
+  u32Result |= sd_nvic_SetPriority(GPIOTE_IRQn, NRF_APP_PRIORITY_LOW);
+  u32Result |= sd_nvic_EnableIRQ(GPIOTE_IRQn);
+  u32Result |= sd_nvic_SetPriority(SPI0_TWI0_IRQn, NRF_APP_PRIORITY_LOW);
+  u32Result |= sd_nvic_EnableIRQ(SPI0_TWI0_IRQn);
   
   return (u32Result == NRF_SUCCESS);
 #endif
@@ -131,10 +135,33 @@ Promises:
 */
 void GPIOTE_IRQHandler(void)
 {
-
+  LedToggle(RED);
+  
+  NRF_GPIOTE->EVENTS_IN[0] = 0; 
+  sd_nvic_ClearPendingIRQ(GPIOTE_IRQn);
 
 } /* end GPIOTE_IRQHandler() */
 
+
+/*--------------------------------------------------------------------------------------------------------------------
+Interrupt handler: SPI0_TWI0_IRQHandler
+
+Description:
+Processes SPI0 Events 
+
+Requires:
+  - Enabled via sd_nvic_XXX
+
+Promises:
+  - Handles the SPI0 events. 
+*/
+void SPI0_TWI0_IRQHandler(void)
+{
+  LedToggle(GREEN);
+  NRF_SPI0->EVENTS_READY = 0;
+  sd_nvic_ClearPendingIRQ(SPI0_TWI0_IRQn);
+
+} /* end GPIOTE_IRQHandler() */
 
 
 

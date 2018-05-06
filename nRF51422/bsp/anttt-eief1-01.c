@@ -78,7 +78,6 @@ Promises:
 void GpioSetup(void)
 {
   /* Set all of the pin function registers in port 0 */
-  NRF_GPIO->PIN_CNF[P0_09_INDEX] = P0_09_SRDY_CNF;
    
 } /* end GpioSetup() */
 

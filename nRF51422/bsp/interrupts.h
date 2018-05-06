@@ -80,7 +80,7 @@ void RTC1_IRQHandler(void);
 
 void SD_EVT_IRQHandler(void);
 void GPIOTE_IRQHandler(void);
-
+void SPI0_TWI0_IRQHandler(void);
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Private functions                                                                                                  */

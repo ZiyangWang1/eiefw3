@@ -76,7 +76,7 @@ void main(void)
   SpiMasterInitialize();
   ANTIntegrationInitialize();
   BLEIntegrationInitialize();
-  //bleperipheralInitialize();
+  bleperipheralInitialize();
   
   /* Application initialization */
   AntttInitialize();

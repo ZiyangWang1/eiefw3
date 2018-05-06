@@ -30,8 +30,10 @@ Global variable definitions with scope limited to this local application.
 Variable names shall start with "Anttt_<type>" and be declared as static.
 ***********************************************************************************************************************/
 static fnCode_type Anttt_pfnStateMachine;              /* The application state machine function pointer */
-
-
+static u8 Anttt_au8RxBuffer[ANTTT_RX_BUFFER_SIZE];
+static u8 * Anttt_pu8RxNextChar = Anttt_au8RxBuffer;
+static u8 * Anttt_pu8RxParser = Anttt_au8RxBuffer;
+static u8 ** Anttt_ppu8RxNextCharPos = &Anttt_pu8RxNextChar;
 
 /**********************************************************************************************************************
 Function Definitions
@@ -68,11 +70,15 @@ void AntttInitialize(void)
   antttSpiMaster.SPI_CONFIG_ORDER = SPI_CONFIG_ORDER_LsbFirst;
   antttSpiMaster.SPI_CONFIG_CPOL = SPI_CONFIG_CPOL_ActiveLow;
   antttSpiMaster.SPI_CONFIG_CPHA = SPI_CONFIG_CPHA_Trailing;
-  antttSpiMaster.p_rx_buffer = NULL;
-  antttSpiMaster.rx_length = 0;
+  antttSpiMaster.p_rx_buffer = Anttt_au8RxBuffer;
+  antttSpiMaster.pp_rx_nextchar = Anttt_ppu8RxNextCharPos;
+  antttSpiMaster.rx_length = ANTTT_RX_BUFFER_SIZE;
   
   if(SpiMasterOpen(&antttSpiMaster))
   {
+    NRF_SPI0->INTENSET = 4;
+    nrf_gpiote_event_config(0,P0_09_INDEX,NRF_GPIOTE_POLARITY_TOGGLE);
+    NRF_GPIOTE->INTENSET = P0_09_INDEX;
     NRF_GPIO->OUTCLR = P0_10_SPI_CS;
     Anttt_pfnStateMachine = AntttSM_Idle;
   }
@@ -121,15 +127,27 @@ static void AntttSM_Idle(void)
   static u8 u8Status = 0x30;
   
   SpiMasterSendByte(&u8Status);
-  nrf_delay_us(50000);
-  switch(SpiMaster_u8RxBuffer)
+  nrf_delay_us(1000000);
+  
+  if(Anttt_pu8RxParser != Anttt_pu8RxNextChar)
   {
-  case 0x51: LedToggle(BLUE);u8Status = 0x31;break;
-  case 0x52: LedToggle(GREEN);u8Status = 0x32;break;
-  case 0x53: LedToggle(YELLOW);u8Status = 0x33;break;
-  case 0x54: LedToggle(RED);u8Status = 0x34;break;
-  default: ;
+    switch(*Anttt_pu8RxParser)
+    {
+    case 0x51: LedToggle(BLUE);u8Status = 0x31;break;
+    case 0x52: LedToggle(GREEN);u8Status = 0x32;break;
+    case 0x53: LedToggle(YELLOW);u8Status = 0x33;break;
+    case 0x54: LedToggle(RED);u8Status = 0x34;break;
+    default: ;
+    }
+    Anttt_pu8RxParser++;
+    
+    if(Anttt_pu8RxParser == &Anttt_au8RxBuffer[ANTTT_RX_BUFFER_SIZE])
+    {
+      Anttt_pu8RxParser = Anttt_au8RxBuffer;
+    }
+    
   }
+
   
 } 
 
