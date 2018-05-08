@@ -73,19 +73,11 @@ void SpiMasterReadByte(void);
 bool SpiMasterReadData(u8 u8length);
 
 /* Protected Functions */
-void SpiMasterInitialize(void);
-void SpiMasterRunActiveState(void);
 
 /* Private Functions */
 
 /* Interrupt Handle Functions */
 void SPI0_TWI0_IRQHandler(void);
-
-/*--------------------------------------------------------------------------------------------------------------------*/
-/* SM functions                                                                                                  */
-/*--------------------------------------------------------------------------------------------------------------------*/
-static void SpiMasterSM_Idle(void);
-static void SpiMasterSM_Error(void);
 
 /******************************************************************************
 * State Machine Function Prototypes

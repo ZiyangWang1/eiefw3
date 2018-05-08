@@ -24,7 +24,6 @@ extern volatile u32 G_u32SystemTime1ms;                /* From board-specific so
 extern volatile u32 G_u32SystemTime1s;                 /* From board-specific source file */
 extern volatile u32 G_u32BPEngenuicsFlags;             /* From bleperipheral_engenuics.c  */
 
-extern volatile bool G_bReadTaskFlag;                       /* From interrupts.c */
 /***********************************************************************************************************************
 Global variable definitions with scope limited to this local application.
 Variable names shall start with "Anttt_<type>" and be declared as static.
@@ -135,31 +134,11 @@ State: AntttSM_Idle
 */
 static void AntttSM_Idle(void)
 {
-  if(G_bReadTaskFlag)
-  {
-    SpiMasterReadByte();
-  }
-  else
-  {
-    SpiMasterSendData("READY/r",5);
-    nrf_delay_us(1000000);
-  }
-  
-  if(!(*Anttt_pu8RxParser == 0x00))
-  {
-    G_bReadTaskFlag = false;
-  }
+  SpiMasterSendData("TEST ",5);
+  nrf_delay_us(1000000);
   
   if(Anttt_pu8RxParser != Anttt_pu8RxNextChar)
   {
-    switch(*Anttt_pu8RxParser)
-    {
-    case 0x51: LedToggle(BLUE);break;
-    case 0x52: LedToggle(GREEN);break;
-    case 0x53: LedToggle(YELLOW);break;
-    case 0x54: LedToggle(RED);break;
-    default: ;
-    }
     Anttt_pu8RxParser++;
     
     if(Anttt_pu8RxParser == &Anttt_au8RxBuffer[ANTTT_RX_BUFFER_SIZE])

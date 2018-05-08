@@ -22,12 +22,11 @@ extern volatile u32 G_u32SystemTime1s;                 /* From board-specific so
 
 extern volatile u32 G_u32ApplicationFlags;             /* From main.c */
 
+extern volatile bool G_bReadTaskFlag;                       /* From interrupts.c */
 /***********************************************************************************************************************
 Global variable definitions with scope limited to this local application.
 Variable names shall start with "Spi_" and be declared as static.
 ***********************************************************************************************************************/
-static fnCode_type SpiMaster_pfnStateMachine;                   /* The application state machine function pointer */
-
 static u8 SpiMaster_u8CurrentByte = 0;                          /* The current byte */
 
 static u8* SpiMaster_pu8RxBuffer = NULL;                        /* The receive buffer pointer */
@@ -226,77 +225,13 @@ bool SpiMasterReadData(u8 u8length)
   return true;
 } /* end SpiMasterReadData() */
 
-
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Protected functions */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-/*--------------------------------------------------------------------------------------------------------------------
-Function: SpiMasterInitialize
-
-Description:
-Initializes the State Machine and its variables.
-
-Requires:
-
-Promises:
-*/
-void SpiMasterInitialize(void)
-{
-  // If initialize successfully, set the state machine to idle
-  if(1)
-  {
-    SpiMaster_pfnStateMachine = SpiMasterSM_Idle;
-  }
-  else
-  {
-    SpiMaster_pfnStateMachine = SpiMasterSM_Error;
-  }
-} /* end SpiMasterInitialize() */
-
-
-/*----------------------------------------------------------------------------------------------------------------------
-Function SpiMasterRunActiveState()
-
-Description:
-Selects and runs one iteration of the current state in the state machine.
-
-Requires:
-  - State machine function pointer points at current state
-
-Promises:
-  - Calls the function to pointed by the state machine function pointer
-*/
-void SpiMasterRunActiveState(void)
-{
-  SpiMaster_pfnStateMachine();
-
-} /* end SpiMasterRunActiveState */
-
 /*--------------------------------------------------------------------------------------------------------------------*/
-/* Private functions */
+/* Interrupt handler functions */
 /*--------------------------------------------------------------------------------------------------------------------*/
-
-  
-/*--------------------------------------------------------------------------------------------------------------------*/
-/* State Machine definitions                                                                                          */
-/*--------------------------------------------------------------------------------------------------------------------*/
-
-/*--------------------------------------------------------------------------------------------------------------------
-State: SpiMasterSM_Idle
-*/
-static void SpiMasterSM_Idle(void)
-{
-
-} /* end SpiMasterSM_Idle() */
-
-/*--------------------------------------------------------------------------------------------------------------------
-State: SpiMasterSM_Error
-*/
-static void SpiMasterSM_Error(void)
-{
-    
-} /* end SpiMasterSM_Error() */
 
 /*--------------------------------------------------------------------------------------------------------------------
 Interrupt handler: SPI0_TWI0_IRQHandler
@@ -315,6 +250,23 @@ void SPI0_TWI0_IRQHandler(void)
   // When READY interrupt comes, read RXD register
   SpiMaster_u8CurrentByte = NRF_SPI0->RXD;
   
+  if(!(SpiMaster_u8CurrentByte == 0x00))
+  {
+    G_bReadTaskFlag = false;
+    switch(SpiMaster_u8CurrentByte)
+    {
+    case 0x51: LedToggle(BLUE);break;
+    case 0x52: LedToggle(GREEN);break;
+    case 0x53: LedToggle(YELLOW);break;
+    case 0x54: LedToggle(RED);break;
+    default: ;
+    }
+  }
+  
+  if(G_bReadTaskFlag)
+  {
+    SpiMasterReadByte();
+  }
   // Check against dummy bytes
   if(SpiMaster_u8CurrentByte != 0x00 && SpiMaster_u8CurrentByte != 0xFF)
   {

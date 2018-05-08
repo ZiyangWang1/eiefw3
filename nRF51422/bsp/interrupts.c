@@ -133,6 +133,7 @@ void GPIOTE_IRQHandler(void)
 {
   LedToggle(RED);
   G_bReadTaskFlag = true;
+  SpiMasterReadByte();
   NRF_GPIOTE->EVENTS_IN[0] = 0; 
   sd_nvic_ClearPendingIRQ(GPIOTE_IRQn);
 
