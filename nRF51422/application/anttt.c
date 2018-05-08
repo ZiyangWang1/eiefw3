@@ -24,6 +24,7 @@ extern volatile u32 G_u32SystemTime1ms;                /* From board-specific so
 extern volatile u32 G_u32SystemTime1s;                 /* From board-specific source file */
 extern volatile u32 G_u32BPEngenuicsFlags;             /* From bleperipheral_engenuics.c  */
 
+extern volatile bool G_bReadTaskFlag;                       /* From interrupts.c */
 /***********************************************************************************************************************
 Global variable definitions with scope limited to this local application.
 Variable names shall start with "Anttt_<type>" and be declared as static.
@@ -31,7 +32,7 @@ Variable names shall start with "Anttt_<type>" and be declared as static.
 static fnCode_type Anttt_pfnStateMachine;                       /* The application state machine function pointer */
 static u8 Anttt_au8RxBuffer[ANTTT_RX_BUFFER_SIZE];              /* The receiving buffer */
 static u8 * Anttt_pu8RxNextChar = Anttt_au8RxBuffer;            /* The receiving next char pointer */
-static u8 * Anttt_pu8RxParser = Anttt_au8RxBuffer;              /* The receiving parser pointer */
+u8 * Anttt_pu8RxParser = Anttt_au8RxBuffer;              /* The receiving parser pointer */
 static u8 ** Anttt_ppu8RxNextCharPos = &Anttt_pu8RxNextChar;    /* A pointer to the receiving next char pointer */
 
 /**********************************************************************************************************************
@@ -134,19 +135,29 @@ State: AntttSM_Idle
 */
 static void AntttSM_Idle(void)
 {
-  static u8 u8Status = 0x30;
+  if(G_bReadTaskFlag)
+  {
+    SpiMasterReadByte();
+  }
+  else
+  {
+    SpiMasterSendData("READY/r",5);
+    nrf_delay_us(1000000);
+  }
   
-  SpiMasterSendByte(&u8Status);
-  nrf_delay_us(1000000);
+  if(!(*Anttt_pu8RxParser == 0x00))
+  {
+    G_bReadTaskFlag = false;
+  }
   
   if(Anttt_pu8RxParser != Anttt_pu8RxNextChar)
   {
     switch(*Anttt_pu8RxParser)
     {
-    case 0x51: LedToggle(BLUE);u8Status = 0x31;break;
-    case 0x52: LedToggle(GREEN);u8Status = 0x32;break;
-    case 0x53: LedToggle(YELLOW);u8Status = 0x33;break;
-    case 0x54: LedToggle(RED);u8Status = 0x34;break;
+    case 0x51: LedToggle(BLUE);break;
+    case 0x52: LedToggle(GREEN);break;
+    case 0x53: LedToggle(YELLOW);break;
+    case 0x54: LedToggle(RED);break;
     default: ;
     }
     Anttt_pu8RxParser++;
@@ -157,8 +168,6 @@ static void AntttSM_Idle(void)
     }
     
   }
-
-  
 } 
 
      

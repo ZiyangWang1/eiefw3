@@ -22,7 +22,6 @@ extern volatile u32 G_u32SystemTime1s;                 /* From board-specific so
 
 extern volatile u32 G_u32ApplicationFlags;             /* From main.c */
 
-
 /***********************************************************************************************************************
 Global variable definitions with scope limited to this local application.
 Variable names shall start with "Spi_" and be declared as static.
@@ -30,7 +29,6 @@ Variable names shall start with "Spi_" and be declared as static.
 static fnCode_type SpiMaster_pfnStateMachine;                   /* The application state machine function pointer */
 
 static u8 SpiMaster_u8CurrentByte = 0;                          /* The current byte */
-static bool SpiMaster_bNewMessage = false;                      /* The new message flag */
 
 static u8* SpiMaster_pu8RxBuffer = NULL;                        /* The receive buffer pointer */
 static u8** SpiMaster_ppu8RxNextChar = NULL;                    /* A pointer to the receiving next char pointer */
@@ -61,6 +59,8 @@ Promises:
 */
 bool SpiMasterOpen(spi_master_config_t * p_spi_master_config)
 {
+  u32 u32Result = NRF_SUCCESS;
+  
   /* Check against null */
   if (p_spi_master_config == NULL)
   {
@@ -111,13 +111,11 @@ bool SpiMasterOpen(spi_master_config_t * p_spi_master_config)
   SpiMaster_u8RxLength = p_spi_master_config -> rx_length;
   
   /* Enable "READY" interrupt */
-  if(sd_nvic_SetPriority(SPI0_TWI0_IRQn, NRF_APP_PRIORITY_LOW) \
-    && sd_nvic_EnableIRQ(SPI0_TWI0_IRQn))
-  {
-    NRF_SPI0->INTENSET = (u32)1 << 2;
-    return true;
-  }
-  return false;
+  NRF_SPI0->INTENSET = (u32)1 << 2;
+  u32Result |= sd_nvic_SetPriority(SPI0_TWI0_IRQn, NRF_APP_PRIORITY_LOW);
+  u32Result |= sd_nvic_EnableIRQ(SPI0_TWI0_IRQn);
+
+  return (u32Result == NRF_SUCCESS);
 } /* end SpiMasterOpen() */
 
 /*--------------------------------------------------------------------------------------------------------------------
@@ -133,17 +131,7 @@ Promises:
 */
 void SpiMasterSendByte(u8 * p_tx_buf)
 {
-    *SpiMaster_pu8UnsendChar = *p_tx_buf;
-    
-    // Safely advance the unsend char pointer
-    SpiMaster_pu8UnsendChar++;
-    
-    if(SpiMaster_pu8UnsendChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
-    {
-      SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
-    }
-    
-    SpiMaster_bNewMessage = true;
+  NRF_SPI0->TXD = *p_tx_buf;
 } /* end SpiMasterSendByte() */
 
 /*--------------------------------------------------------------------------------------------------------------------
@@ -167,7 +155,7 @@ bool SpiMasterSendData(u8 * p_tx_buf, u8 u8length)
     return false;
   }
   
-  for(int i = 0;i<u8length;i++)
+  for(int i = 1;i<u8length;i++)
   {
     *SpiMaster_pu8UnsendChar = p_tx_buf[i];
     
@@ -180,7 +168,7 @@ bool SpiMasterSendData(u8 * p_tx_buf, u8 u8length)
     }
   }
   
-  SpiMaster_bNewMessage = true;
+  NRF_SPI0->TXD = p_tx_buf[0];
   return true;
 } /* end SpiMasterSendData() */
 
@@ -221,9 +209,9 @@ bool SpiMasterReadData(u8 u8length)
     return false;
   }
   
-  for(int i = 0;i<u8length;i++)
+  for(int i = 1;i<u8length;i++)
   {
-    *SpiMaster_pu8UnsendChar = p_tx_buf[i];
+    *SpiMaster_pu8UnsendChar = SPI_DEFAULT_TX_BYTE;
     
     // Safely advance the unsend char pointer
     SpiMaster_pu8UnsendChar++;
@@ -234,7 +222,7 @@ bool SpiMasterReadData(u8 u8length)
     }
   }
   
-  SpiMaster_bNewMessage = true;
+  NRF_SPI0->TXD = SPI_DEFAULT_TX_BYTE;
   return true;
 } /* end SpiMasterReadData() */
 
@@ -255,12 +243,6 @@ Promises:
 */
 void SpiMasterInitialize(void)
 {
-  // Clear transmitting buffer
-  for(int i = 0;i<SPI_TX_BUFFER_SIZE;i++)
-  {
-    SpiMaster_TxBuffer[i] = 0;
-  }
-  
   // If initialize successfully, set the state machine to idle
   if(1)
   {
@@ -305,20 +287,6 @@ State: SpiMasterSM_Idle
 */
 static void SpiMasterSM_Idle(void)
 {
-  if(SpiMaster_bNewMessage = true)
-  {
-    NRF_SPI0->TXD = *SpiMaster_pu8TxNextChar;
-    
-    // Safely advance the transmitting next char pointer
-    SpiMaster_pu8TxNextChar++;
-    
-    if(SpiMaster_pu8TxNextChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
-    {
-      SpiMaster_pu8TxNextChar = SpiMaster_TxBuffer;
-    }
-    
-    SpiMaster_bNewMessage = false;
-  }
 
 } /* end SpiMasterSM_Idle() */
 
@@ -348,7 +316,7 @@ void SPI0_TWI0_IRQHandler(void)
   SpiMaster_u8CurrentByte = NRF_SPI0->RXD;
   
   // Check against dummy bytes
-  if(SpiMaster_u8CurrentByte != 0)
+  if(SpiMaster_u8CurrentByte != 0x00 && SpiMaster_u8CurrentByte != 0xFF)
   {
     // Save to the next char location
     **SpiMaster_ppu8RxNextChar = SpiMaster_u8CurrentByte;

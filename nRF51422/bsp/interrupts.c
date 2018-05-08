@@ -20,7 +20,7 @@ All Global variable names shall start with "G_"
 ***********************************************************************************************************************/
 /* New variables */
 volatile u32 G_u32InterruptsFlags;                     /* Global state flags */
-
+volatile bool G_bReadTaskFlag = false;                 /* Read Task falg for anttt */
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Existing variables (defined in other files -- should all contain the "extern" keyword) */
@@ -132,7 +132,7 @@ Promises:
 void GPIOTE_IRQHandler(void)
 {
   LedToggle(RED);
-  
+  G_bReadTaskFlag = true;
   NRF_GPIOTE->EVENTS_IN[0] = 0; 
   sd_nvic_ClearPendingIRQ(GPIOTE_IRQn);
 

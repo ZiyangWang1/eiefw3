@@ -197,6 +197,27 @@ State Machine Function Definitions
 static void UserApp1SM_Idle(void)
 {
   u8 au8CurrentByte[] = " ";
+  static u8 u8DelayCounter = 0;
+  static bool bSendSRDY = FALSE;
+  
+  if(bSendSRDY)
+  {
+    u8DelayCounter++;
+    if(u8DelayCounter == 10)
+    {
+      if(AT91C_BASE_PIOB->PIO_ODSR & PB_24_ANT_SRDY)
+      {
+       AT91C_BASE_PIOB->PIO_CODR = PB_24_ANT_SRDY;
+      }
+      else
+      {
+       AT91C_BASE_PIOB->PIO_SODR = PB_24_ANT_SRDY;
+      }
+      u8DelayCounter = 0;
+      bSendSRDY = FALSE;
+    }
+
+  }
   
   /* Parse any new characters that have come in until no more chars */
   while( (UserApp1_pu8RxBufferParser != UserApp1_pu8RxBufferNextChar))
@@ -214,66 +235,30 @@ static void UserApp1SM_Idle(void)
   
   if(WasButtonPressed(BUTTON0))
   {
-   ButtonAcknowledge(BUTTON0);
-   
-   if(AT91C_BASE_PIOB->PIO_ODSR & PB_24_ANT_SRDY)
-   {
-     AT91C_BASE_PIOB->PIO_CODR = PB_24_ANT_SRDY;
-   }
-   else
-   {
-     AT91C_BASE_PIOB->PIO_SODR = PB_24_ANT_SRDY;
-   }
-   
-   SspWriteByte(UserApp_SPI,0x51);
+    ButtonAcknowledge(BUTTON0);
+    bSendSRDY = TRUE;
+    SspWriteByte(UserApp_SPI,0x51);
   }
   
   if(WasButtonPressed(BUTTON1))
   {
-   ButtonAcknowledge(BUTTON1);
-   
-   if(AT91C_BASE_PIOB->PIO_ODSR & PB_24_ANT_SRDY)
-   {
-     AT91C_BASE_PIOB->PIO_CODR = PB_24_ANT_SRDY;
-   }
-   else
-   {
-     AT91C_BASE_PIOB->PIO_SODR = PB_24_ANT_SRDY;
-   }
-   
-   SspWriteByte(UserApp_SPI,0x52);
+    ButtonAcknowledge(BUTTON1);
+    bSendSRDY = TRUE;
+    SspWriteByte(UserApp_SPI,0x52);
   }
   
   if(WasButtonPressed(BUTTON2))
   {
-   ButtonAcknowledge(BUTTON2);
-   
-   if(AT91C_BASE_PIOB->PIO_ODSR & PB_24_ANT_SRDY)
-   {
-     AT91C_BASE_PIOB->PIO_CODR = PB_24_ANT_SRDY;
-   }
-   else
-   {
-     AT91C_BASE_PIOB->PIO_SODR = PB_24_ANT_SRDY;
-   }
-   
-   SspWriteByte(UserApp_SPI,0x53);
+    ButtonAcknowledge(BUTTON2);
+    bSendSRDY = TRUE;
+    SspWriteByte(UserApp_SPI,0x53);
   }
   
   if(WasButtonPressed(BUTTON3))
   {
-   ButtonAcknowledge(BUTTON3);
-   
-   if(AT91C_BASE_PIOB->PIO_ODSR & PB_24_ANT_SRDY)
-   {
-     AT91C_BASE_PIOB->PIO_CODR = PB_24_ANT_SRDY;
-   }
-   else
-   {
-     AT91C_BASE_PIOB->PIO_SODR = PB_24_ANT_SRDY;
-   }
-   
-   SspWriteByte(UserApp_SPI,0x54);
+    ButtonAcknowledge(BUTTON3);
+    bSendSRDY = TRUE;
+    SspWriteByte(UserApp_SPI,0x54);
   }
   
 
