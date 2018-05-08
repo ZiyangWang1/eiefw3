@@ -27,16 +27,18 @@ extern volatile u32 G_u32ApplicationFlags;             /* From main.c */
 Global variable definitions with scope limited to this local application.
 Variable names shall start with "Spi_" and be declared as static.
 ***********************************************************************************************************************/
-static fnCode_type SpiMaster_pfnStateMachine;              /* The application state machine function pointer */
-u8 SpiMaster_u8CurrentByte = 0;
+static fnCode_type SpiMaster_pfnStateMachine;                   /* The application state machine function pointer */
 
-static u8* SpiMaster_pu8RxBuffer = NULL;
-static u8** SpiMaster_ppu8RxNextChar = NULL;
-static u8 SpiMaster_u8RxLength = 0;
+static u8 SpiMaster_u8CurrentByte = 0;                          /* The current byte */
+static bool SpiMaster_bNewMessage = false;                      /* The new message flag */
 
-static u8 SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE];
-static u8* SpiMaster_pu8TxNextChar = SpiMaster_TxBuffer;
-static u8* SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
+static u8* SpiMaster_pu8RxBuffer = NULL;                        /* The receive buffer pointer */
+static u8** SpiMaster_ppu8RxNextChar = NULL;                    /* A pointer to the receiving next char pointer */
+static u8 SpiMaster_u8RxLength = 0;                             /* The receiving buffer size */
+
+static u8 SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE];               /* The transmitting buffer */
+static u8* SpiMaster_pu8TxNextChar = SpiMaster_TxBuffer;        /* The transmitting next char pointer */
+static u8* SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;        /* The unsend char pointer */
 
 /***********************************************************************************************************************
 * Function Definitions
@@ -71,7 +73,7 @@ bool SpiMasterOpen(spi_master_config_t * p_spi_master_config)
   nrf_gpio_cfg_output(p_spi_master_config->SPI_Pin_SS);
   nrf_gpio_pin_set(p_spi_master_config->SPI_Pin_SS);
   
-  //Configure GPIO
+  //Configure GPIO output
   nrf_gpio_cfg_output(p_spi_master_config->SPI_Pin_SCK);
   nrf_gpio_cfg_output(p_spi_master_config->SPI_Pin_MOSI);
   nrf_gpio_cfg_input(p_spi_master_config->SPI_Pin_MISO, NRF_GPIO_PIN_NOPULL);
@@ -84,6 +86,7 @@ bool SpiMasterOpen(spi_master_config_t * p_spi_master_config)
   }
   
   NRF_GPIO->OUTCLR = P0_13_SPI_MOSI;
+  
   /* Configure SPI hardware */
   NRF_SPI0->PSELSCK  = p_spi_master_config->SPI_Pin_SCK;
   NRF_SPI0->PSELMOSI = p_spi_master_config->SPI_Pin_MOSI;
@@ -102,11 +105,20 @@ bool SpiMasterOpen(spi_master_config_t * p_spi_master_config)
   /* Enable SPI hardware */
   NRF_SPI0->ENABLE = (SPI_ENABLE_ENABLE_Enabled << SPI_ENABLE_ENABLE_Pos);
   
+  /* Configure receiving and transmitting buffer */ 
   SpiMaster_pu8RxBuffer = p_spi_master_config -> p_rx_buffer;
   SpiMaster_ppu8RxNextChar = p_spi_master_config ->pp_rx_nextchar;
   SpiMaster_u8RxLength = p_spi_master_config -> rx_length;
-  return true;
-}
+  
+  /* Enable "READY" interrupt */
+  if(sd_nvic_SetPriority(SPI0_TWI0_IRQn, NRF_APP_PRIORITY_LOW) \
+    && sd_nvic_EnableIRQ(SPI0_TWI0_IRQn))
+  {
+    NRF_SPI0->INTENSET = (u32)1 << 2;
+    return true;
+  }
+  return false;
+} /* end SpiMasterOpen() */
 
 /*--------------------------------------------------------------------------------------------------------------------
 Function: SpiMasterSendByte
@@ -122,19 +134,23 @@ Promises:
 void SpiMasterSendByte(u8 * p_tx_buf)
 {
     *SpiMaster_pu8UnsendChar = *p_tx_buf;
+    
+    // Safely advance the unsend char pointer
     SpiMaster_pu8UnsendChar++;
     
     if(SpiMaster_pu8UnsendChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
     {
       SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
     }
-}
+    
+    SpiMaster_bNewMessage = true;
+} /* end SpiMasterSendByte() */
 
 /*--------------------------------------------------------------------------------------------------------------------
 Function: SpiMasterSendData
 
 Description:
-Send an data array to the selected slave
+Send a data array to the selected slave
 
 Requires: 
   - A pointer to the array
@@ -144,6 +160,8 @@ Promises:
 */
 bool SpiMasterSendData(u8 * p_tx_buf, u8 u8length)
 {
+  
+  // Return false when the data is larger than my transmitting buffer
   if(u8length > SPI_TX_BUFFER_SIZE)
   {
     return false;
@@ -152,6 +170,8 @@ bool SpiMasterSendData(u8 * p_tx_buf, u8 u8length)
   for(int i = 0;i<u8length;i++)
   {
     *SpiMaster_pu8UnsendChar = p_tx_buf[i];
+    
+    // Safely advance the unsend char pointer
     SpiMaster_pu8UnsendChar++;
     
     if(SpiMaster_pu8UnsendChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
@@ -159,8 +179,10 @@ bool SpiMasterSendData(u8 * p_tx_buf, u8 u8length)
       SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
     }
   }
+  
+  SpiMaster_bNewMessage = true;
   return true;
-}
+} /* end SpiMasterSendData() */
 
 /*--------------------------------------------------------------------------------------------------------------------
 Function: SpiMasterReadByte
@@ -173,10 +195,49 @@ Requires:
 Promises:
   - 
 */
-bool SpiMasterReadByte(void)
+void SpiMasterReadByte(void)
 {
-  return false;
-}
+  // Send a dummy byte
+  //The receiving byte will be in the receiving buffer
+  NRF_SPI0->TXD = SPI_DEFAULT_TX_BYTE;
+} /* end SpiMasterReadByte() */
+
+/*--------------------------------------------------------------------------------------------------------------------
+Function: SpiMasterReadData
+
+Description:
+Read a data array from the selected slave
+
+Requires: 
+  - The length of the array
+
+Promises:
+*/
+bool SpiMasterReadData(u8 u8length)
+{
+  // Return false when the data is larger than my receiving buffer
+  if(u8length > SpiMaster_u8RxLength)
+  {
+    return false;
+  }
+  
+  for(int i = 0;i<u8length;i++)
+  {
+    *SpiMaster_pu8UnsendChar = p_tx_buf[i];
+    
+    // Safely advance the unsend char pointer
+    SpiMaster_pu8UnsendChar++;
+    
+    if(SpiMaster_pu8UnsendChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
+    {
+      SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
+    }
+  }
+  
+  SpiMaster_bNewMessage = true;
+  return true;
+} /* end SpiMasterReadData() */
+
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Protected functions */
@@ -194,11 +255,13 @@ Promises:
 */
 void SpiMasterInitialize(void)
 {
+  // Clear transmitting buffer
   for(int i = 0;i<SPI_TX_BUFFER_SIZE;i++)
   {
     SpiMaster_TxBuffer[i] = 0;
   }
   
+  // If initialize successfully, set the state machine to idle
   if(1)
   {
     SpiMaster_pfnStateMachine = SpiMasterSM_Idle;
@@ -242,34 +305,22 @@ State: SpiMasterSM_Idle
 */
 static void SpiMasterSM_Idle(void)
 {
-  if(NRF_SPI0->EVENTS_READY == 1)
-  {
-    SpiMaster_u8CurrentByte = NRF_SPI0->RXD;
-    
-    if(SpiMaster_u8CurrentByte != 0)
-    {
-      **SpiMaster_ppu8RxNextChar = SpiMaster_u8CurrentByte;
-      (*SpiMaster_ppu8RxNextChar)++;
-      
-      if(*SpiMaster_ppu8RxNextChar == (SpiMaster_pu8RxBuffer + SpiMaster_u8RxLength))
-      {
-        *SpiMaster_ppu8RxNextChar = SpiMaster_pu8RxBuffer;
-      }
-    }
-    NRF_SPI0->EVENTS_READY = 0;
-  }
-
-  if(SpiMaster_pu8TxNextChar != SpiMaster_pu8UnsendChar)
+  if(SpiMaster_bNewMessage = true)
   {
     NRF_SPI0->TXD = *SpiMaster_pu8TxNextChar;
+    
+    // Safely advance the transmitting next char pointer
     SpiMaster_pu8TxNextChar++;
     
     if(SpiMaster_pu8TxNextChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
     {
       SpiMaster_pu8TxNextChar = SpiMaster_TxBuffer;
     }
+    
+    SpiMaster_bNewMessage = false;
   }
-}
+
+} /* end SpiMasterSM_Idle() */
 
 /*--------------------------------------------------------------------------------------------------------------------
 State: SpiMasterSM_Error
@@ -277,7 +328,59 @@ State: SpiMasterSM_Error
 static void SpiMasterSM_Error(void)
 {
     
-} 
+} /* end SpiMasterSM_Error() */
+
+/*--------------------------------------------------------------------------------------------------------------------
+Interrupt handler: SPI0_TWI0_IRQHandler
+
+Description:
+Processes SPI0 Events 
+
+Requires:
+  - Enabled via sd_nvic_XXX
+
+Promises:
+  - Handles the SPI0 events. 
+*/
+void SPI0_TWI0_IRQHandler(void)
+{
+  // When READY interrupt comes, read RXD register
+  SpiMaster_u8CurrentByte = NRF_SPI0->RXD;
+  
+  // Check against dummy bytes
+  if(SpiMaster_u8CurrentByte != 0)
+  {
+    // Save to the next char location
+    **SpiMaster_ppu8RxNextChar = SpiMaster_u8CurrentByte;
+    
+    // Safely advance the receiving next char pointer
+    (*SpiMaster_ppu8RxNextChar)++;
+    
+    if(*SpiMaster_ppu8RxNextChar == (SpiMaster_pu8RxBuffer + SpiMaster_u8RxLength))
+    {
+      *SpiMaster_ppu8RxNextChar = SpiMaster_pu8RxBuffer;
+    }
+  }
+  
+  // Send all unsend chars
+  if(SpiMaster_pu8TxNextChar != SpiMaster_pu8UnsendChar)
+  {
+    NRF_SPI0->TXD = *SpiMaster_pu8TxNextChar;
+    
+    // Safely advance the transmitting next char pointer
+    SpiMaster_pu8TxNextChar++;
+    
+    if(SpiMaster_pu8TxNextChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
+    {
+      SpiMaster_pu8TxNextChar = SpiMaster_TxBuffer;
+    }
+  }
+  
+  // Clear READY interrupt and event
+  NRF_SPI0->EVENTS_READY = 0;
+  sd_nvic_ClearPendingIRQ(SPI0_TWI0_IRQn);
+
+} /* end GPIOTE_IRQHandler() */
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* End of File */

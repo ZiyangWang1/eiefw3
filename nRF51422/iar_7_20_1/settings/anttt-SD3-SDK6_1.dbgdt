@@ -104,7 +104,7 @@
       <WATCH_3>
         <expressions>
           
-        <item>SpiMaster_u8CurrentByte</item><item>SpiMaster_pu8RxBuffer</item><item>SpiMaster_pu8RxNextChar</item><item>Anttt_pu8RxNextChar</item><item></item></expressions>
+        <item>SpiMaster_u8CurrentByte</item><item>SpiMaster_pu8RxBuffer</item><item>SpiMaster_pu8RxNextChar</item><item>Anttt_pu8RxNextChar</item><item/></expressions>
         <col-names>
           
           

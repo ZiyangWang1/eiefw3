@@ -23,17 +23,16 @@ extern volatile u32 G_u32SystemFlags;                  /* From main.c */
 extern volatile u32 G_u32SystemTime1ms;                /* From board-specific source file */
 extern volatile u32 G_u32SystemTime1s;                 /* From board-specific source file */
 extern volatile u32 G_u32BPEngenuicsFlags;             /* From bleperipheral_engenuics.c  */
-extern volatile u8 SpiMaster_u8RxBuffer;
 
 /***********************************************************************************************************************
 Global variable definitions with scope limited to this local application.
 Variable names shall start with "Anttt_<type>" and be declared as static.
 ***********************************************************************************************************************/
-static fnCode_type Anttt_pfnStateMachine;              /* The application state machine function pointer */
-static u8 Anttt_au8RxBuffer[ANTTT_RX_BUFFER_SIZE];
-static u8 * Anttt_pu8RxNextChar = Anttt_au8RxBuffer;
-static u8 * Anttt_pu8RxParser = Anttt_au8RxBuffer;
-static u8 ** Anttt_ppu8RxNextCharPos = &Anttt_pu8RxNextChar;
+static fnCode_type Anttt_pfnStateMachine;                       /* The application state machine function pointer */
+static u8 Anttt_au8RxBuffer[ANTTT_RX_BUFFER_SIZE];              /* The receiving buffer */
+static u8 * Anttt_pu8RxNextChar = Anttt_au8RxBuffer;            /* The receiving next char pointer */
+static u8 * Anttt_pu8RxParser = Anttt_au8RxBuffer;              /* The receiving parser pointer */
+static u8 ** Anttt_ppu8RxNextCharPos = &Anttt_pu8RxNextChar;    /* A pointer to the receiving next char pointer */
 
 /**********************************************************************************************************************
 Function Definitions
@@ -62,6 +61,19 @@ void AntttInitialize(void)
 {
   spi_master_config_t antttSpiMaster;
 
+  // Configure GPIOTE and enable the interrupt
+  nrf_gpiote_event_config(0,P0_09_INDEX,NRF_GPIOTE_POLARITY_TOGGLE);
+  sd_nvic_SetPriority(GPIOTE_IRQn, NRF_APP_PRIORITY_LOW);
+  sd_nvic_EnableIRQ(GPIOTE_IRQn);
+  NRF_GPIOTE->INTENSET = (u32)1 << 0;
+  
+  // Clear receiving buffer
+  for(int i = 0;i<ANTTT_RX_BUFFER_SIZE;i++)
+  {
+    Anttt_au8RxBuffer[i] = 0;
+  }
+  
+  // Configure SPI Master
   antttSpiMaster.SPI_Freq = SPI_FREQUENCY_FREQUENCY_M1;
   antttSpiMaster.SPI_Pin_SCK = P0_11_INDEX;
   antttSpiMaster.SPI_Pin_MISO = P0_12_INDEX;
@@ -74,11 +86,9 @@ void AntttInitialize(void)
   antttSpiMaster.pp_rx_nextchar = Anttt_ppu8RxNextCharPos;
   antttSpiMaster.rx_length = ANTTT_RX_BUFFER_SIZE;
   
+  // If configure successfully, set the state machine to idle
   if(SpiMasterOpen(&antttSpiMaster))
   {
-    NRF_SPI0->INTENSET = 4;
-    nrf_gpiote_event_config(0,P0_09_INDEX,NRF_GPIOTE_POLARITY_TOGGLE);
-    NRF_GPIOTE->INTENSET = P0_09_INDEX;
     NRF_GPIO->OUTCLR = P0_10_SPI_CS;
     Anttt_pfnStateMachine = AntttSM_Idle;
   }
