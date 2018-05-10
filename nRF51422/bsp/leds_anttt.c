@@ -169,7 +169,7 @@ void LedsInitialize(void)
     {
       LedToggle((LedNumberType)u8Leds);
     }
-    nrf_delay_us(100000);
+    nrf_delay_us(500000);
   }
   
   for(u8Leds=0;u8Leds<4;u8Leds++)

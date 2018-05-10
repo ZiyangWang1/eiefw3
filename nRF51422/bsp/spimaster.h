@@ -69,7 +69,7 @@ typedef struct
 bool SpiMasterOpen(spi_master_config_t * p_spi_master_config);
 void SpiMasterSendByte(u8 * p_tx_buf);
 bool SpiMasterSendData(u8 * p_tx_buf, u8 u8length);
-void SpiMasterReadByte(void);
+bool SpiMasterReadByte(void);
 bool SpiMasterReadData(u8 u8length);
 
 /* Protected Functions */

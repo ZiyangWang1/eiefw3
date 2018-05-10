@@ -22,12 +22,14 @@ extern volatile u32 G_u32SystemTime1s;                 /* From board-specific so
 
 extern volatile u32 G_u32ApplicationFlags;             /* From main.c */
 
-extern volatile bool G_bReadTaskFlag;                       /* From interrupts.c */
 /***********************************************************************************************************************
 Global variable definitions with scope limited to this local application.
 Variable names shall start with "Spi_" and be declared as static.
 ***********************************************************************************************************************/
 static u8 SpiMaster_u8CurrentByte = 0;                          /* The current byte */
+static bool SpiMaster_bReadTask = false;                        /* The flag of SPI master reading task */
+static bool SpiMaster_bSendTask = false;                        /* The flag of SPI master sending task */
+static u8 SpiMaster_u8ReadTaskNumber = 0;                       /* The number of bytes of SPI master needs to read */
 
 static u8* SpiMaster_pu8RxBuffer = NULL;                        /* The receive buffer pointer */
 static u8** SpiMaster_ppu8RxNextChar = NULL;                    /* A pointer to the receiving next char pointer */
@@ -130,7 +132,25 @@ Promises:
 */
 void SpiMasterSendByte(u8 * p_tx_buf)
 {
-  NRF_SPI0->TXD = *p_tx_buf;
+  if(SpiMaster_bReadTask)
+  {
+    *SpiMaster_pu8UnsendChar = *p_tx_buf;
+
+    // Safely advance the unsend char pointer
+    SpiMaster_pu8UnsendChar++;
+
+    if(SpiMaster_pu8UnsendChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
+    {
+      SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
+    }
+  }
+  else
+  {
+    NRF_GPIO->OUTCLR = P0_10_SPI_CS;
+    NRF_SPI0->TXD = *p_tx_buf;
+    SpiMaster_bSendTask = true;
+  }
+
 } /* end SpiMasterSendByte() */
 
 /*--------------------------------------------------------------------------------------------------------------------
@@ -154,20 +174,42 @@ bool SpiMasterSendData(u8 * p_tx_buf, u8 u8length)
     return false;
   }
   
-  for(int i = 1;i<u8length;i++)
+  if(SpiMaster_bReadTask)
   {
-    *SpiMaster_pu8UnsendChar = p_tx_buf[i];
-    
-    // Safely advance the unsend char pointer
-    SpiMaster_pu8UnsendChar++;
-    
-    if(SpiMaster_pu8UnsendChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
+    for(int i = 0;i<u8length;i++)
     {
-      SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
+      *SpiMaster_pu8UnsendChar = p_tx_buf[i];
+      
+      // Safely advance the unsend char pointer
+      SpiMaster_pu8UnsendChar++;
+      
+      if(SpiMaster_pu8UnsendChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
+      {
+        SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
+      }
     }
+    SpiMaster_bSendTask = true;
   }
-  
-  NRF_SPI0->TXD = p_tx_buf[0];
+  else
+  {
+    for(int i = 1;i<u8length;i++)
+    {
+      *SpiMaster_pu8UnsendChar = p_tx_buf[i];
+      
+      // Safely advance the unsend char pointer
+      SpiMaster_pu8UnsendChar++;
+      
+      if(SpiMaster_pu8UnsendChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
+      {
+        SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
+      }
+    }
+    
+    NRF_GPIO->OUTCLR = P0_10_SPI_CS;
+    NRF_SPI0->TXD = p_tx_buf[0];
+    SpiMaster_bSendTask = true;
+  }
+
   return true;
 } /* end SpiMasterSendData() */
 
@@ -182,11 +224,25 @@ Requires:
 Promises:
   - 
 */
-void SpiMasterReadByte(void)
+bool SpiMasterReadByte(void)
 {
-  // Send a dummy byte
-  //The receiving byte will be in the receiving buffer
-  NRF_SPI0->TXD = SPI_DEFAULT_TX_BYTE;
+  // Return false when there is already a read task
+  if(SpiMaster_bReadTask)
+  {
+    return false;
+  }
+  
+  SpiMaster_bReadTask = true;
+  SpiMaster_u8ReadTaskNumber = 1;
+  
+  if(!SpiMaster_bSendTask)
+  {
+    // If there is no sending task, send a dummy byte
+    // The receiving byte will be in the receiving buffer
+    NRF_GPIO->OUTCLR = P0_10_SPI_CS;
+    NRF_SPI0->TXD = SPI_DEFAULT_TX_BYTE;
+  }
+  return true;
 } /* end SpiMasterReadByte() */
 
 /*--------------------------------------------------------------------------------------------------------------------
@@ -202,26 +258,29 @@ Promises:
 */
 bool SpiMasterReadData(u8 u8length)
 {
+  
   // Return false when the data is larger than my receiving buffer
   if(u8length > SpiMaster_u8RxLength)
   {
     return false;
   }
   
-  for(int i = 1;i<u8length;i++)
+  // Return false when there is already a read task
+  if(SpiMaster_bReadTask)
   {
-    *SpiMaster_pu8UnsendChar = SPI_DEFAULT_TX_BYTE;
-    
-    // Safely advance the unsend char pointer
-    SpiMaster_pu8UnsendChar++;
-    
-    if(SpiMaster_pu8UnsendChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
-    {
-      SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
-    }
+    return false;
   }
   
-  NRF_SPI0->TXD = SPI_DEFAULT_TX_BYTE;
+  SpiMaster_bReadTask = true;
+  SpiMaster_u8ReadTaskNumber = u8length;
+  
+  if(!SpiMaster_bSendTask)
+  {
+    // If there is no sending task, send a dummy byte
+    // The receiving byte will be in the receiving buffer
+    NRF_GPIO->OUTCLR = P0_10_SPI_CS;
+    NRF_SPI0->TXD = SPI_DEFAULT_TX_BYTE;
+  }
   return true;
 } /* end SpiMasterReadData() */
 
@@ -250,23 +309,6 @@ void SPI0_TWI0_IRQHandler(void)
   // When READY interrupt comes, read RXD register
   SpiMaster_u8CurrentByte = NRF_SPI0->RXD;
   
-  if(!(SpiMaster_u8CurrentByte == 0x00))
-  {
-    G_bReadTaskFlag = false;
-    switch(SpiMaster_u8CurrentByte)
-    {
-    case 0x51: LedToggle(BLUE);break;
-    case 0x52: LedToggle(GREEN);break;
-    case 0x53: LedToggle(YELLOW);break;
-    case 0x54: LedToggle(RED);break;
-    default: ;
-    }
-  }
-  
-  if(G_bReadTaskFlag)
-  {
-    SpiMasterReadByte();
-  }
   // Check against dummy bytes
   if(SpiMaster_u8CurrentByte != 0x00 && SpiMaster_u8CurrentByte != 0xFF)
   {
@@ -280,6 +322,26 @@ void SPI0_TWI0_IRQHandler(void)
     {
       *SpiMaster_ppu8RxNextChar = SpiMaster_pu8RxBuffer;
     }
+    
+    if(--SpiMaster_u8ReadTaskNumber == 0)
+    {
+      NRF_GPIO->OUTSET = P0_10_SPI_CS;
+      SpiMaster_bReadTask = false;
+    }
+    
+    switch(SpiMaster_u8CurrentByte)
+    {
+    case 0x51: LedToggle(BLUE);break;
+    case 0x52: LedToggle(GREEN);break;
+    case 0x53: LedToggle(YELLOW);break;
+    case 0x54: LedToggle(RED);break;
+    default:LedToggle(RED);
+    }
+  }
+  
+  if(SpiMaster_bReadTask && (!SpiMaster_bSendTask))
+  {
+    NRF_SPI0->TXD = SPI_DEFAULT_TX_BYTE;
   }
   
   // Send all unsend chars
@@ -293,6 +355,12 @@ void SPI0_TWI0_IRQHandler(void)
     if(SpiMaster_pu8TxNextChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
     {
       SpiMaster_pu8TxNextChar = SpiMaster_TxBuffer;
+    }
+    
+    if(SpiMaster_pu8TxNextChar == SpiMaster_pu8UnsendChar)
+    {
+      NRF_GPIO->OUTSET = P0_10_SPI_CS;
+      SpiMaster_bSendTask = false;
     }
   }
   

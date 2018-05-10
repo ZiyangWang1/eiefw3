@@ -89,7 +89,7 @@ void AntttInitialize(void)
   // If configure successfully, set the state machine to idle
   if(SpiMasterOpen(&antttSpiMaster))
   {
-    NRF_GPIO->OUTCLR = P0_10_SPI_CS;
+    NRF_GPIO->OUTSET = P0_10_SPI_CS;
     Anttt_pfnStateMachine = AntttSM_Idle;
   }
   else
@@ -135,7 +135,7 @@ State: AntttSM_Idle
 static void AntttSM_Idle(void)
 {
   SpiMasterSendData("TEST ",5);
-  nrf_delay_us(1000000);
+  nrf_delay_us(100000);
   
   if(Anttt_pu8RxParser != Anttt_pu8RxNextChar)
   {
