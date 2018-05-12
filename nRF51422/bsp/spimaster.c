@@ -119,6 +119,67 @@ bool SpiMasterOpen(spi_master_config_t * p_spi_master_config)
   return (u32Result == NRF_SUCCESS);
 } /* end SpiMasterOpen() */
 
+/*----------------------------------------------------------------------------------------------------------------------
+Function: SspAssertCS
+
+Description:
+Asserts (CLEARS) the CS line on the target SSP peripheral.  
+
+Requires:
+  - SPI master has been opened.
+
+Promises:
+  - Target's CS line is LOW
+*/
+void SspAssertCS(void)
+{
+  NRF_GPIO->OUTCLR = P0_10_SPI_CS;
+  nrf_delay_us(100);
+  
+} /* end SspAssertCS() */
+
+/*----------------------------------------------------------------------------------------------------------------------
+Function: SspDeAssertCS
+
+Description:
+Deasserts (SETS) the CS line on the target SSP peripheral.  
+
+Requires:
+  - SPI master has been opened.
+
+Promises:
+  - Target's CS line is HIGH
+*/
+void SspDeAssertCS(void)
+{
+  NRF_GPIO->OUTSET = P0_10_SPI_CS;
+  nrf_delay_us(100);
+  
+} /* end SspDessertCS() */
+
+/*----------------------------------------------------------------------------------------------------------------------
+Function: CheckSpiTask
+
+Description:
+Check if there is any spi tasks
+
+Requires:
+  - SPI master has been opened.
+
+Promises:
+  - If there is a task, return true and go to main handler
+*/
+bool CheckSpiTask(void)
+{
+  if(SpiMaster_bReadTask || SpiMaster_bSendTask)
+  {
+    SspAssertCS();
+    SPI0_TWI0_IRQHandler();
+    return true;
+  }
+  return false;
+} /* end CheckSpiTask() */
+
 /*--------------------------------------------------------------------------------------------------------------------
 Function: SpiMasterSendByte
 
@@ -132,7 +193,8 @@ Promises:
 */
 void SpiMasterSendByte(u8 * p_tx_buf)
 {
-  if(SpiMaster_bReadTask)
+  // If there is already a read or send task, just add this byte to transmiting buffer
+  if(SpiMaster_bReadTask || SpiMaster_bSendTask)
   {
     *SpiMaster_pu8UnsendChar = *p_tx_buf;
 
@@ -143,10 +205,12 @@ void SpiMasterSendByte(u8 * p_tx_buf)
     {
       SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
     }
+    SpiMaster_bSendTask = true;
   }
+  // If there is no task, create a send task
   else
   {
-    NRF_GPIO->OUTCLR = P0_10_SPI_CS;
+    SspAssertCS();
     NRF_SPI0->TXD = *p_tx_buf;
     SpiMaster_bSendTask = true;
   }
@@ -174,7 +238,8 @@ bool SpiMasterSendData(u8 * p_tx_buf, u8 u8length)
     return false;
   }
   
-  if(SpiMaster_bReadTask)
+  // If there is already a read or send task, just add this data to transmiting buffer
+  if(SpiMaster_bReadTask || SpiMaster_bSendTask)
   {
     for(int i = 0;i<u8length;i++)
     {
@@ -190,6 +255,8 @@ bool SpiMasterSendData(u8 * p_tx_buf, u8 u8length)
     }
     SpiMaster_bSendTask = true;
   }
+  // If there is no task, create a send task by the first byte
+  // And add the rest bytes to the transmiting buffer
   else
   {
     for(int i = 1;i<u8length;i++)
@@ -204,8 +271,7 @@ bool SpiMasterSendData(u8 * p_tx_buf, u8 u8length)
         SpiMaster_pu8UnsendChar = SpiMaster_TxBuffer;
       }
     }
-    
-    NRF_GPIO->OUTCLR = P0_10_SPI_CS;
+    SspAssertCS();
     NRF_SPI0->TXD = p_tx_buf[0];
     SpiMaster_bSendTask = true;
   }
@@ -232,6 +298,7 @@ bool SpiMasterReadByte(void)
     return false;
   }
   
+  // If there is no read task, create one and set its bytes need to be read
   SpiMaster_bReadTask = true;
   SpiMaster_u8ReadTaskNumber = 1;
   
@@ -239,7 +306,7 @@ bool SpiMasterReadByte(void)
   {
     // If there is no sending task, send a dummy byte
     // The receiving byte will be in the receiving buffer
-    NRF_GPIO->OUTCLR = P0_10_SPI_CS;
+    SspAssertCS();
     NRF_SPI0->TXD = SPI_DEFAULT_TX_BYTE;
   }
   return true;
@@ -271,6 +338,7 @@ bool SpiMasterReadData(u8 u8length)
     return false;
   }
   
+  // If there is no read task, create one and set its bytes need to be read
   SpiMaster_bReadTask = true;
   SpiMaster_u8ReadTaskNumber = u8length;
   
@@ -278,7 +346,7 @@ bool SpiMasterReadData(u8 u8length)
   {
     // If there is no sending task, send a dummy byte
     // The receiving byte will be in the receiving buffer
-    NRF_GPIO->OUTCLR = P0_10_SPI_CS;
+    SspAssertCS();
     NRF_SPI0->TXD = SPI_DEFAULT_TX_BYTE;
   }
   return true;
@@ -309,8 +377,12 @@ void SPI0_TWI0_IRQHandler(void)
   // When READY interrupt comes, read RXD register
   SpiMaster_u8CurrentByte = NRF_SPI0->RXD;
   
+  // Clear READY interrupt and event
+  NRF_SPI0->EVENTS_READY = 0;
+  sd_nvic_ClearPendingIRQ(SPI0_TWI0_IRQn);
+  
   // Check against dummy bytes
-  if(SpiMaster_u8CurrentByte != 0x00 && SpiMaster_u8CurrentByte != 0xFF)
+  if(SpiMaster_u8CurrentByte != 0x00 && SpiMaster_u8CurrentByte != 0xFF && SpiMaster_bReadTask)
   {
     // Save to the next char location
     **SpiMaster_ppu8RxNextChar = SpiMaster_u8CurrentByte;
@@ -323,50 +395,52 @@ void SPI0_TWI0_IRQHandler(void)
       *SpiMaster_ppu8RxNextChar = SpiMaster_pu8RxBuffer;
     }
     
-    if(--SpiMaster_u8ReadTaskNumber == 0)
-    {
-      NRF_GPIO->OUTSET = P0_10_SPI_CS;
-      SpiMaster_bReadTask = false;
-    }
-    
+    // Process the byte
     switch(SpiMaster_u8CurrentByte)
     {
     case 0x51: LedToggle(BLUE);break;
     case 0x52: LedToggle(GREEN);break;
     case 0x53: LedToggle(YELLOW);break;
     case 0x54: LedToggle(RED);break;
-    default:LedToggle(RED);
+    default:SpiMaster_u8ReadTaskNumber++;
+    }
+    
+    // The 0 read task number means the read task is completed
+    if(--SpiMaster_u8ReadTaskNumber == 0)
+    {
+      SspDeAssertCS();
+      SpiMaster_bReadTask = false;
     }
   }
   
+  // If there is nothing to send but you need to read something, send a dummy byte
   if(SpiMaster_bReadTask && (!SpiMaster_bSendTask))
   {
     NRF_SPI0->TXD = SPI_DEFAULT_TX_BYTE;
   }
-  
-  // Send all unsend chars
-  if(SpiMaster_pu8TxNextChar != SpiMaster_pu8UnsendChar)
+  else
   {
-    NRF_SPI0->TXD = *SpiMaster_pu8TxNextChar;
-    
-    // Safely advance the transmitting next char pointer
-    SpiMaster_pu8TxNextChar++;
-    
-    if(SpiMaster_pu8TxNextChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
+    // Send all unsend chars
+    if(SpiMaster_pu8TxNextChar != SpiMaster_pu8UnsendChar)
     {
-      SpiMaster_pu8TxNextChar = SpiMaster_TxBuffer;
+      NRF_SPI0->TXD = *SpiMaster_pu8TxNextChar;
+      
+      // Safely advance the transmitting next char pointer
+      SpiMaster_pu8TxNextChar++;
+      
+      if(SpiMaster_pu8TxNextChar == &SpiMaster_TxBuffer[SPI_TX_BUFFER_SIZE])
+      {
+        SpiMaster_pu8TxNextChar = SpiMaster_TxBuffer;
+      }
     }
-    
-    if(SpiMaster_pu8TxNextChar == SpiMaster_pu8UnsendChar)
+    else
     {
-      NRF_GPIO->OUTSET = P0_10_SPI_CS;
+      // Nothing to send means send task is completed
+      SspDeAssertCS();
       SpiMaster_bSendTask = false;
     }
   }
   
-  // Clear READY interrupt and event
-  NRF_SPI0->EVENTS_READY = 0;
-  sd_nvic_ClearPendingIRQ(SPI0_TWI0_IRQn);
 
 } /* end GPIOTE_IRQHandler() */
 

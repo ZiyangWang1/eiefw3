@@ -130,8 +130,12 @@ Promises:
 */
 void GPIOTE_IRQHandler(void)
 {
-  LedToggle(RED);
-  SpiMasterReadByte();
+  // Read data from spi slave
+  if(!CheckSpiTask())
+  {
+    SpiMasterReadByte();
+  }
+  // Clear the interrupt
   NRF_GPIOTE->EVENTS_IN[0] = 0; 
   sd_nvic_ClearPendingIRQ(GPIOTE_IRQn);
 

@@ -71,6 +71,9 @@ void SpiMasterSendByte(u8 * p_tx_buf);
 bool SpiMasterSendData(u8 * p_tx_buf, u8 u8length);
 bool SpiMasterReadByte(void);
 bool SpiMasterReadData(u8 u8length);
+void SspAssertCS(void);
+void SspDeAssertCS(void);
+bool CheckSpiTask(void);
 
 /* Protected Functions */
 
