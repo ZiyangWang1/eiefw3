@@ -53,7 +53,7 @@ Promises:
 */
 bool InterruptsInitialize(void)
 {
-#define SD_PRESENT 1
+#define SD_PRESENT 0
   
 #ifndef SD_PRESENT  
 
@@ -133,7 +133,7 @@ void GPIOTE_IRQHandler(void)
   // Read data from spi slave
   if(!CheckSpiTask())
   {
-    SpiMasterReadByte();
+    //SpiMasterReadByte();
   }
   // Clear the interrupt
   NRF_GPIOTE->EVENTS_IN[0] = 0; 

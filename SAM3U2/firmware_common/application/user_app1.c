@@ -201,14 +201,14 @@ Promises:
 */
 bool UserApp1_CheckGameResult(u8* pau8TicTacToe_)
 {
-  return ((pau8TicTacToe_[0] == pau8TicTacToe_ [1]) && (pau8TicTacToe_[0] == pau8TicTacToe_ [2])) \
-      || ((pau8TicTacToe_[3] == pau8TicTacToe_ [4]) && (pau8TicTacToe_[3] == pau8TicTacToe_ [5])) \
-      || ((pau8TicTacToe_[6] == pau8TicTacToe_ [7]) && (pau8TicTacToe_[6] == pau8TicTacToe_ [8])) \
-      || ((pau8TicTacToe_[0] == pau8TicTacToe_ [3]) && (pau8TicTacToe_[0] == pau8TicTacToe_ [6])) \
-      || ((pau8TicTacToe_[1] == pau8TicTacToe_ [4]) && (pau8TicTacToe_[1] == pau8TicTacToe_ [7])) \
-      || ((pau8TicTacToe_[2] == pau8TicTacToe_ [5]) && (pau8TicTacToe_[2] == pau8TicTacToe_ [8])) \
-      || ((pau8TicTacToe_[0] == pau8TicTacToe_ [4]) && (pau8TicTacToe_[0] == pau8TicTacToe_ [8])) \
-      || ((pau8TicTacToe_[2] == pau8TicTacToe_ [4]) && (pau8TicTacToe_[2] == pau8TicTacToe_ [6]));
+  return ((pau8TicTacToe_[0] == pau8TicTacToe_ [1]) && (pau8TicTacToe_[0] == pau8TicTacToe_ [2]) && (pau8TicTacToe_[0] != ' ')) \
+      || ((pau8TicTacToe_[3] == pau8TicTacToe_ [4]) && (pau8TicTacToe_[3] == pau8TicTacToe_ [5]) && (pau8TicTacToe_[3] != ' ')) \
+      || ((pau8TicTacToe_[6] == pau8TicTacToe_ [7]) && (pau8TicTacToe_[6] == pau8TicTacToe_ [8]) && (pau8TicTacToe_[6] != ' ')) \
+      || ((pau8TicTacToe_[0] == pau8TicTacToe_ [3]) && (pau8TicTacToe_[0] == pau8TicTacToe_ [6]) && (pau8TicTacToe_[0] != ' ')) \
+      || ((pau8TicTacToe_[1] == pau8TicTacToe_ [4]) && (pau8TicTacToe_[1] == pau8TicTacToe_ [7]) && (pau8TicTacToe_[1] != ' ')) \
+      || ((pau8TicTacToe_[2] == pau8TicTacToe_ [5]) && (pau8TicTacToe_[2] == pau8TicTacToe_ [8]) && (pau8TicTacToe_[2] != ' ')) \
+      || ((pau8TicTacToe_[0] == pau8TicTacToe_ [4]) && (pau8TicTacToe_[0] == pau8TicTacToe_ [8]) && (pau8TicTacToe_[0] != ' ')) \
+      || ((pau8TicTacToe_[2] == pau8TicTacToe_ [4]) && (pau8TicTacToe_[2] == pau8TicTacToe_ [6]) && (pau8TicTacToe_[2] != ' '));
 }
 
 
@@ -220,17 +220,20 @@ State Machine Function Definitions
 /* Wait for ??? */
 static void UserApp1SM_Idle(void)
 {
-  u8 u8CurrentByte = 0;
-  static u8 au8TicTacToe[9] = {'1','2','3','4','5','6','7','8','9'};
+  u8 au8CurrentByte[] = " \0";
+  static u8 au8TicTacToe[9] = {' ',' ',' ',' ',' ',' ',' ',' ',' '};
   static u8 au8InterfaceBuffer = 0;
   static bool bMyturn = TRUE;
-  static bool bPrintTask = FALSE;
+  static bool bPrintTask = TRUE;
   static u8 u8PrintCounter = 0;
+  static bool bGameStart = FALSE;
   u8 au8DefaultLine[] = "     |     |     \n\r";
   u8 au8LongDash[] = "-----------------\n\r";
   
+  // Print the tic-tac-toe when necessery
   if(bPrintTask)
   {
+    // Print line by line
     switch(u8PrintCounter)
     {
     case 0:
@@ -282,45 +285,70 @@ static void UserApp1SM_Idle(void)
     default: LedOn(RED);
     }
     
+    // Add counter when printed each line
     u8PrintCounter++;
     
+    // Print finished
     if(u8PrintCounter == 11)
     {
-      if(UserApp1_CheckGameResult(au8TicTacToe))
-      {
-        if(bMyturn)
-        {
-          DebugPrintf("\n\rBLE win!\n\r");
-        }
-        else
-        {
-          DebugPrintf("\n\rYou win!\n\r");
-        }
-      }
-      else
-      {
-        if(bMyturn)
-        {
-          DebugPrintf("\n\rYour turn: ");
-        }
-        else
-        {
-          DebugPrintf("\n\rBLE turn: ");
-        }
-      }
+      // Reset the counter
       u8PrintCounter = 0;
       bPrintTask = FALSE;
+      // If it is in game, check the game result
+      if(bGameStart)
+      {
+        // Game finished
+        if(UserApp1_CheckGameResult(au8TicTacToe))
+        {
+          if(bMyturn)
+          {
+            DebugPrintf("\n\rBLE win!\n\r");
+          }
+          else
+          {
+            DebugPrintf("\n\rYou win!\n\r");
+          }
+          bGameStart = FALSE;
+          bPrintTask = TRUE;
+          for(int i = 0;i<9;i++)
+          {
+            au8TicTacToe[i] = ' ';
+          }
+        }
+        // Game is not finished, start another turn
+        else
+        {
+          if(bMyturn)
+          {
+            DebugPrintf("\n\rYour turn: ");
+          }
+          else
+          {
+            DebugPrintf("\n\rBLE turn: ");
+          }
+        }
+      }
     }
   }
   
-  
+  // There is an input from the debug
   if(DebugScanf(&au8InterfaceBuffer))
   {
+    // Check against invalid number
     if(au8InterfaceBuffer <= '9' && au8InterfaceBuffer >= '0')
     {
-      if(au8TicTacToe[au8InterfaceBuffer - '1'] != 'O' \
-        && au8TicTacToe[au8InterfaceBuffer - '1'] != 'X')
+      // Start the game when it is the first input
+      if(!bGameStart)
       {
+        bGameStart = TRUE;
+        bMyturn = TRUE;
+      }
+      
+      // Check against invalid postion
+      if(au8TicTacToe[au8InterfaceBuffer - '1'] == ' ')
+      {
+        
+        // Check against wrong turn operation
         if(bMyturn)
         {
           au8TicTacToe[au8InterfaceBuffer - '1'] = 'O';
@@ -349,14 +377,24 @@ static void UserApp1SM_Idle(void)
   while( (UserApp1_pu8RxBufferParser != UserApp1_pu8RxBufferNextChar))
   {
     /* Grab a copy of the current byte and echo it back */
-    u8CurrentByte = *UserApp1_pu8RxBufferParser;
-    DebugPrintf(&u8CurrentByte);
+    au8CurrentByte[0] = *UserApp1_pu8RxBufferParser;
+    DebugPrintf(au8CurrentByte);
     
-    if(u8CurrentByte <= '9' && u8CurrentByte >= '0')
+    // There is an input from the BLE
+    if(au8CurrentByte[0] <= '9' && au8CurrentByte[0] >= '0')
     {
-      if(au8TicTacToe[u8CurrentByte - '1'] != 'O' \
-        && au8TicTacToe[u8CurrentByte - '1'] != 'X')
+      // Start the game when it is the first input
+      if(!bGameStart)
       {
+        bGameStart = TRUE;
+        bMyturn = FALSE;
+      }
+      
+      // Check against invalid postion
+      if(au8TicTacToe[au8CurrentByte[0] - '1'] == ' ')
+      {
+        
+        // Check against wrong turn operation
         if(bMyturn)
         {
           DebugPrintf("Not BLE turn!");
@@ -364,7 +402,7 @@ static void UserApp1SM_Idle(void)
         }
         else
         {
-          au8TicTacToe[u8CurrentByte - '1'] = 'X';
+          au8TicTacToe[au8CurrentByte[0] - '1'] = 'X';
           bMyturn = TRUE;
           bPrintTask = TRUE;
         }
@@ -379,6 +417,7 @@ static void UserApp1SM_Idle(void)
       DebugPrintf("\n\rInvalid number!\n\r");
     }
     
+    /* Safely advances the parser pointer */
     UserApp1_pu8RxBufferParser++;
     if(UserApp1_pu8RxBufferParser >= &UserApp1_au8RxBuffer[USERAPP_RX_BUFFER_SIZE])
     {

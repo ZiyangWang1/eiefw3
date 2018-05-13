@@ -333,6 +333,7 @@ Promises:
 */
 static void CallbackBleperipheralEngenuicsDataRx(u8* u8Data_, u8 u8Length_)
 {
+  SpiMasterSendByte(u8Data_);
   // Forward handling to ANTTT module.
   
 }
