@@ -187,6 +187,30 @@ void UserApp1RunActiveState(void)
 /* Private functions                                                                                                  */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
+/*--------------------------------------------------------------------------------------------------------------------
+Function: UserApp1_CheckGameResult
+
+Description:
+Check game result.
+
+Requires:
+  -
+
+Promises:
+  - 
+*/
+bool UserApp1_CheckGameResult(u8* pau8TicTacToe_)
+{
+  return ((pau8TicTacToe_[0] == pau8TicTacToe_ [1]) && (pau8TicTacToe_[0] == pau8TicTacToe_ [2])) \
+      || ((pau8TicTacToe_[3] == pau8TicTacToe_ [4]) && (pau8TicTacToe_[3] == pau8TicTacToe_ [5])) \
+      || ((pau8TicTacToe_[6] == pau8TicTacToe_ [7]) && (pau8TicTacToe_[6] == pau8TicTacToe_ [8])) \
+      || ((pau8TicTacToe_[0] == pau8TicTacToe_ [3]) && (pau8TicTacToe_[0] == pau8TicTacToe_ [6])) \
+      || ((pau8TicTacToe_[1] == pau8TicTacToe_ [4]) && (pau8TicTacToe_[1] == pau8TicTacToe_ [7])) \
+      || ((pau8TicTacToe_[2] == pau8TicTacToe_ [5]) && (pau8TicTacToe_[2] == pau8TicTacToe_ [8])) \
+      || ((pau8TicTacToe_[0] == pau8TicTacToe_ [4]) && (pau8TicTacToe_[0] == pau8TicTacToe_ [8])) \
+      || ((pau8TicTacToe_[2] == pau8TicTacToe_ [4]) && (pau8TicTacToe_[2] == pau8TicTacToe_ [6]));
+}
+
 
 /**********************************************************************************************************************
 State Machine Function Definitions
@@ -196,35 +220,165 @@ State Machine Function Definitions
 /* Wait for ??? */
 static void UserApp1SM_Idle(void)
 {
-  u8 au8CurrentByte[] = " ";
-  static u8 u8DelayCounter = 0;
-  static bool bSendSRDY = FALSE;
+  u8 u8CurrentByte = 0;
+  static u8 au8TicTacToe[9] = {'1','2','3','4','5','6','7','8','9'};
+  static u8 au8InterfaceBuffer = 0;
+  static bool bMyturn = TRUE;
+  static bool bPrintTask = FALSE;
+  static u8 u8PrintCounter = 0;
+  u8 au8DefaultLine[] = "     |     |     \n\r";
+  u8 au8LongDash[] = "-----------------\n\r";
   
-  if(bSendSRDY)
+  if(bPrintTask)
   {
-    u8DelayCounter++;
-    if(u8DelayCounter == 10)
+    switch(u8PrintCounter)
     {
-      if(AT91C_BASE_PIOB->PIO_ODSR & PB_24_ANT_SRDY)
+    case 0:
+      DebugLineFeed();
+      DebugPrintf(au8DefaultLine);
+      break;
+    case 1:
+      for(int i = 0;i<3;i++)
       {
-       AT91C_BASE_PIOB->PIO_CODR = PB_24_ANT_SRDY;
+        au8DefaultLine[6*i+2] = au8TicTacToe[i];
+      }
+      DebugPrintf(au8DefaultLine);
+      break;
+    case 2:
+      DebugPrintf(au8DefaultLine);
+      break;
+    case 3:
+      DebugPrintf(au8LongDash);
+      break;
+    case 4:
+      DebugPrintf(au8DefaultLine);
+      break;
+    case 5:
+      for(int i = 0;i<3;i++)
+      {
+        au8DefaultLine[6*i+2] = au8TicTacToe[i+3];
+      }
+      DebugPrintf(au8DefaultLine);
+      break;
+    case 6:
+      DebugPrintf(au8DefaultLine);
+      break;
+    case 7:
+      DebugPrintf(au8LongDash);
+      break;
+    case 8:
+      DebugPrintf(au8DefaultLine);
+      break;
+    case 9:
+      for(int i = 0;i<3;i++)
+      {
+        au8DefaultLine[6*i+2] = au8TicTacToe[i+6];
+      }
+      DebugPrintf(au8DefaultLine);
+      break;
+    case 10:
+      DebugPrintf(au8DefaultLine);
+      break;
+    default: LedOn(RED);
+    }
+    
+    u8PrintCounter++;
+    
+    if(u8PrintCounter == 11)
+    {
+      if(UserApp1_CheckGameResult(au8TicTacToe))
+      {
+        if(bMyturn)
+        {
+          DebugPrintf("\n\rBLE win!\n\r");
+        }
+        else
+        {
+          DebugPrintf("\n\rYou win!\n\r");
+        }
       }
       else
       {
-       AT91C_BASE_PIOB->PIO_SODR = PB_24_ANT_SRDY;
+        if(bMyturn)
+        {
+          DebugPrintf("\n\rYour turn: ");
+        }
+        else
+        {
+          DebugPrintf("\n\rBLE turn: ");
+        }
       }
-      u8DelayCounter = 0;
-      bSendSRDY = FALSE;
+      u8PrintCounter = 0;
+      bPrintTask = FALSE;
     }
-
   }
+  
+  
+  if(DebugScanf(&au8InterfaceBuffer))
+  {
+    if(au8InterfaceBuffer <= '9' && au8InterfaceBuffer >= '0')
+    {
+      if(au8TicTacToe[au8InterfaceBuffer - '1'] != 'O' \
+        && au8TicTacToe[au8InterfaceBuffer - '1'] != 'X')
+      {
+        if(bMyturn)
+        {
+          au8TicTacToe[au8InterfaceBuffer - '1'] = 'O';
+          bMyturn = FALSE;
+          bPrintTask = TRUE;
+        }
+        else
+        {
+          DebugPrintf("\n\rNot your turn!\n\r");
+          DebugPrintf("\n\rBLE turn: ");
+        }
+      }
+      else
+      {
+        DebugPrintf("\n\rInvalid position!\n\r");
+      }
+    }
+    else
+    {
+      DebugPrintf("\n\rInvalid number!\n\r");
+    }
+  }
+  
   
   /* Parse any new characters that have come in until no more chars */
   while( (UserApp1_pu8RxBufferParser != UserApp1_pu8RxBufferNextChar))
   {
     /* Grab a copy of the current byte and echo it back */
-    au8CurrentByte[0] = *UserApp1_pu8RxBufferParser;
-    DebugPrintf(au8CurrentByte);
+    u8CurrentByte = *UserApp1_pu8RxBufferParser;
+    DebugPrintf(&u8CurrentByte);
+    
+    if(u8CurrentByte <= '9' && u8CurrentByte >= '0')
+    {
+      if(au8TicTacToe[u8CurrentByte - '1'] != 'O' \
+        && au8TicTacToe[u8CurrentByte - '1'] != 'X')
+      {
+        if(bMyturn)
+        {
+          DebugPrintf("Not BLE turn!");
+          DebugPrintf("\n\rYour turn: ");
+        }
+        else
+        {
+          au8TicTacToe[u8CurrentByte - '1'] = 'X';
+          bMyturn = TRUE;
+          bPrintTask = TRUE;
+        }
+      }
+      else
+      {
+        DebugPrintf("\n\rInvalid position!\n\r");
+      }
+    }
+    else
+    {
+      DebugPrintf("\n\rInvalid number!\n\r");
+    }
+    
     UserApp1_pu8RxBufferParser++;
     if(UserApp1_pu8RxBufferParser >= &UserApp1_au8RxBuffer[USERAPP_RX_BUFFER_SIZE])
     {
@@ -232,36 +386,6 @@ static void UserApp1SM_Idle(void)
     }
     LedToggle(RED);
   }
-  
-  if(WasButtonPressed(BUTTON0))
-  {
-    ButtonAcknowledge(BUTTON0);
-    bSendSRDY = TRUE;
-    SspWriteByte(UserApp_SPI,0x51);
-  }
-  
-  if(WasButtonPressed(BUTTON1))
-  {
-    ButtonAcknowledge(BUTTON1);
-    bSendSRDY = TRUE;
-    SspWriteByte(UserApp_SPI,0x52);
-  }
-  
-  if(WasButtonPressed(BUTTON2))
-  {
-    ButtonAcknowledge(BUTTON2);
-    bSendSRDY = TRUE;
-    SspWriteByte(UserApp_SPI,0x53);
-  }
-  
-  if(WasButtonPressed(BUTTON3))
-  {
-    ButtonAcknowledge(BUTTON3);
-    bSendSRDY = TRUE;
-    SspWriteByte(UserApp_SPI,0x54);
-  }
-  
-
 } /* end UserApp1SM_Idle() */
     
 

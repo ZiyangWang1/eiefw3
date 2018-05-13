@@ -104,7 +104,7 @@
       <WATCH_3>
         <expressions>
           
-        <item>SpiMaster_u8CurrentByte</item><item>SpiMaster_pu8RxBuffer</item><item>SpiMaster_pu8RxNextChar</item><item>Anttt_pu8RxNextChar</item><item>Anttt_pu8RxParser</item><item>Anttt_au8RxBuffer</item><item>G_bReadTaskFlag</item><item></item></expressions>
+        <item>SpiMaster_u8CurrentByte</item><item>SpiMaster_pu8RxBuffer</item><item>SpiMaster_pu8RxNextChar</item><item>Anttt_pu8RxNextChar</item><item>Anttt_pu8RxParser</item><item>Anttt_au8RxBuffer</item><item>G_bReadTaskFlag</item><item/></expressions>
         <col-names>
           
           
@@ -188,7 +188,7 @@
       
       
       
-    <Wnd0>
+    <Wnd3>
         <Tabs>
           <Tab>
             <Identity>TabID-26105-28258</Identity>
@@ -209,7 +209,7 @@
           </Tab>
         <Tab><Identity>TabID-27200-2923</Identity><TabName>Declarations</TabName><Factory>Find-All-Declarations</Factory><Session/></Tab></Tabs>
         
-      <SelectedTab>0</SelectedTab></Wnd0><Wnd1>
+      <SelectedTab>0</SelectedTab></Wnd3><Wnd5>
         <Tabs>
           <Tab>
             <Identity>TabID-4085-28262</Identity>
@@ -221,7 +221,7 @@
           </Tab>
         </Tabs>
         
-      <SelectedTab>0</SelectedTab></Wnd1><Wnd2>
+      <SelectedTab>0</SelectedTab></Wnd5><Wnd7>
         <Tabs>
           <Tab>
             <Identity>TabID-20877-28356</Identity>
@@ -254,7 +254,7 @@
           </Tab>
         </Tabs>
         
-      <SelectedTab>2</SelectedTab></Wnd2><Wnd4>
+      <SelectedTab>2</SelectedTab></Wnd7><Wnd8>
         <Tabs>
           <Tab>
             <Identity>TabID-9083-28373</Identity>
@@ -290,7 +290,7 @@
           </Tab>
         </Tabs>
         
-      <SelectedTab>0</SelectedTab></Wnd4><Wnd6>
+      <SelectedTab>0</SelectedTab></Wnd8><Wnd9>
         <Tabs>
           <Tab>
             <Identity>TabID-19308-28386</Identity>
@@ -320,20 +320,20 @@
           </Tab>
         </Tabs>
         
-      <SelectedTab>2</SelectedTab></Wnd6></Windows>
+      <SelectedTab>2</SelectedTab></Wnd9></Windows>
     <Editor>
       
       
       
       
-    <Pane><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\application\anttt.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>0</YPos2><SelStart2>3095</SelStart2><SelEnd2>3095</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\bsp\interrupts.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>21</YPos2><SelStart2>2663</SelStart2><SelEnd2>2663</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\nordic_sdk6_1_0\Include\nrf51.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>94</YPos2><SelStart2>7074</SelStart2><SelEnd2>7074</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\bsp\soc_integration.c</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>61</YPos2><SelStart2>4256</SelStart2><SelEnd2>4256</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\bsp\anttt-eief1-01.c</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>194</YPos2><SelStart2>7332</SelStart2><SelEnd2>7332</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\bsp\leds_anttt.c</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>150</YPos2><SelStart2>5523</SelStart2><SelEnd2>5523</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\nordic_sdk6_1_0\Include\nrf_delay.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>21</YPos2><SelStart2>578</SelStart2><SelEnd2>578</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\application\main.c</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>31</YPos2><SelStart2>2689</SelStart2><SelEnd2>2689</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\application\anttt.c</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>129</YPos2><SelStart2>6426</SelStart2><SelEnd2>6426</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\bsp\interrupts.c</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>111</YPos2><SelStart2>4756</SelStart2><SelEnd2>4756</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\bsp\spimaster.c</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>191</YPos2><SelStart2>7195</SelStart2><SelEnd2>7195</SelEnd2></Tab><ActiveTab>10</ActiveTab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\bsp\spimaster.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>53</YPos2><SelStart2>3704</SelStart2><SelEnd2>3704</SelEnd2></Tab></Pane><ActivePane>0</ActivePane><Sizes><Pane><X>1000000</X><Y>1000000</Y></Pane></Sizes><SplitMode>1</SplitMode></Editor>
+    <Pane><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\application\anttt.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>0</YPos2><SelStart2>3095</SelStart2><SelEnd2>3095</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\bsp\interrupts.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>21</YPos2><SelStart2>2663</SelStart2><SelEnd2>2663</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\bsp\leds_anttt.c</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>150</YPos2><SelStart2>5523</SelStart2><SelEnd2>5523</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\nordic_sdk6_1_0\Include\nrf_delay.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>21</YPos2><SelStart2>578</SelStart2><SelEnd2>578</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\application\main.c</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>31</YPos2><SelStart2>2689</SelStart2><SelEnd2>2689</SelEnd2></Tab><ActiveTab>4</ActiveTab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\application\anttt.c</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>50</YPos2><SelStart2>3952</SelStart2><SelEnd2>3952</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\bsp\interrupts.c</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>117</YPos2><SelStart2>4671</SelStart2><SelEnd2>4671</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\nordic_sdk6_1_0\Include\nrf51.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>71</YPos2><SelStart2>4192</SelStart2><SelEnd2>4206</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\bsp\bleperipheral.c</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>132</YPos2><SelStart2>6704</SelStart2><SelEnd2>6704</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\bsp\spimaster.c</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>330</YPos2><SelStart2>11363</SelStart2><SelEnd2>11363</SelEnd2></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\bsp\spimaster.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd><XPos2>0</XPos2><YPos2>53</YPos2><SelStart2>3704</SelStart2><SelEnd2>3704</SelEnd2></Tab></Pane><ActivePane>0</ActivePane><Sizes><Pane><X>1000000</X><Y>1000000</Y></Pane></Sizes><SplitMode>1</SplitMode></Editor>
     <Positions>
       
       
       
       
       
-    <Top><Row0><Sizes><Toolbar-083E7098><key>iaridepm.enu1</key></Toolbar-083E7098><Toolbar-279DC0C0><key>debuggergui.enu1</key></Toolbar-279DC0C0></Sizes></Row0><Row1><Sizes><Toolbar-279DC318><key>armjlink.enu1</key></Toolbar-279DC318></Sizes></Row1></Top><Left><Row0><Sizes><Wnd1><Rect><Top>-2</Top><Left>-2</Left><Bottom>705</Bottom><Right>421</Right><x>-2</x><y>-2</y><xscreen>199</xscreen><yscreen>201</yscreen><sizeHorzCX>103646</sizeHorzCX><sizeHorzCY>205943</sizeHorzCY><sizeVertCX>220313</sizeVertCX><sizeVertCY>724385</sizeVertCY></Rect></Wnd1></Sizes></Row0></Left><Right><Row0><Sizes><Wnd4><Rect><Top>-2</Top><Left>-2</Left><Bottom>375</Bottom><Right>652</Right><x>-2</x><y>-2</y><xscreen>199</xscreen><yscreen>201</yscreen><sizeHorzCX>103646</sizeHorzCX><sizeHorzCY>205943</sizeHorzCY><sizeVertCX>340625</sizeVertCX><sizeVertCY>386270</sizeVertCY></Rect></Wnd4><Wnd6><Rect><Top>0</Top><Left>0</Left><Bottom>0</Bottom><Right>7</Right><x>-2</x><y>373</y><xscreen>199</xscreen><yscreen>201</yscreen><sizeHorzCX>103646</sizeHorzCX><sizeHorzCY>205943</sizeHorzCY><sizeVertCX>340625</sizeVertCX><sizeVertCY>340164</sizeVertCY></Rect></Wnd6></Sizes></Row0></Right><Bottom><Row0><Sizes><Wnd0><Rect><Top>-2</Top><Left>-2</Left><Bottom>199</Bottom><Right>961</Right><x>-2</x><y>-2</y><xscreen>963</xscreen><yscreen>201</yscreen><sizeHorzCX>501563</sizeHorzCX><sizeHorzCY>205943</sizeHorzCY><sizeVertCX>103646</sizeVertCX><sizeVertCY>205943</sizeVertCY></Rect></Wnd0><Wnd2><Rect><Top>0</Top><Left>0</Left><Bottom>0</Bottom><Right>7</Right><x>959</x><y>-2</y><xscreen>963</xscreen><yscreen>201</yscreen><sizeHorzCX>501563</sizeHorzCX><sizeHorzCY>205943</sizeHorzCY><sizeVertCX>103646</sizeVertCX><sizeVertCY>205943</sizeVertCY></Rect></Wnd2></Sizes></Row0></Bottom><Float><Sizes/></Float></Positions>
+    <Top><Row0><Sizes><Toolbar-07909DF0><key>iaridepm.enu1</key></Toolbar-07909DF0><Toolbar-0C338AF8><key>debuggergui.enu1</key></Toolbar-0C338AF8></Sizes></Row0><Row1><Sizes><Toolbar-0C339138><key>armjlink.enu1</key></Toolbar-0C339138></Sizes></Row1></Top><Left><Row0><Sizes><Wnd5><Rect><Top>-2</Top><Left>-2</Left><Bottom>705</Bottom><Right>421</Right><x>-2</x><y>-2</y><xscreen>199</xscreen><yscreen>201</yscreen><sizeHorzCX>103646</sizeHorzCX><sizeHorzCY>205943</sizeHorzCY><sizeVertCX>220313</sizeVertCX><sizeVertCY>724385</sizeVertCY></Rect></Wnd5></Sizes></Row0></Left><Right><Row0><Sizes><Wnd8><Rect><Top>-2</Top><Left>-2</Left><Bottom>375</Bottom><Right>652</Right><x>-2</x><y>-2</y><xscreen>199</xscreen><yscreen>201</yscreen><sizeHorzCX>103646</sizeHorzCX><sizeHorzCY>205943</sizeHorzCY><sizeVertCX>340625</sizeVertCX><sizeVertCY>386270</sizeVertCY></Rect></Wnd8><Wnd9><Rect><Top>0</Top><Left>0</Left><Bottom>0</Bottom><Right>7</Right><x>-2</x><y>373</y><xscreen>199</xscreen><yscreen>201</yscreen><sizeHorzCX>103646</sizeHorzCX><sizeHorzCY>205943</sizeHorzCY><sizeVertCX>340625</sizeVertCX><sizeVertCY>340164</sizeVertCY></Rect></Wnd9></Sizes></Row0></Right><Bottom><Row0><Sizes><Wnd3><Rect><Top>-2</Top><Left>-2</Left><Bottom>199</Bottom><Right>961</Right><x>-2</x><y>-2</y><xscreen>963</xscreen><yscreen>201</yscreen><sizeHorzCX>501563</sizeHorzCX><sizeHorzCY>205943</sizeHorzCY><sizeVertCX>103646</sizeVertCX><sizeVertCY>205943</sizeVertCY></Rect></Wnd3><Wnd7><Rect><Top>0</Top><Left>0</Left><Bottom>0</Bottom><Right>7</Right><x>959</x><y>-2</y><xscreen>963</xscreen><yscreen>201</yscreen><sizeHorzCX>501563</sizeHorzCX><sizeHorzCY>205943</sizeHorzCY><sizeVertCX>103646</sizeVertCX><sizeVertCY>205943</sizeVertCY></Rect></Wnd7></Sizes></Row0></Bottom><Float><Sizes/></Float></Positions>
   </Desktop>
 </Project>
 
