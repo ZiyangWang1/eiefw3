@@ -297,7 +297,7 @@ static void UserApp1SM_Idle(void)
       // If it is in game, check the game result
       if(bGameStart)
       {
-        // Game finished
+        // Check if game finished
         if(UserApp1_CheckGameResult(au8TicTacToe))
         {
           if(bMyturn)
@@ -309,22 +309,44 @@ static void UserApp1SM_Idle(void)
             DebugPrintf("\n\rYou win!\n\r");
           }
           bGameStart = FALSE;
-          bPrintTask = TRUE;
-          for(int i = 0;i<9;i++)
-          {
-            au8TicTacToe[i] = ' ';
-          }
         }
         // Game is not finished, start another turn
         else
         {
-          if(bMyturn)
+          // Check if tic-tac-toe is full
+          bGameStart = FALSE;
+          for(int i =0;i<9;i++)
           {
-            DebugPrintf("\n\rYour turn: ");
+            if(au8TicTacToe[i] == ' ')
+            {
+              bGameStart = TRUE;
+            }
+          }
+          
+          if(!bGameStart)
+          {
+            DebugPrintf("\n\rRound draw!\n\r");
           }
           else
           {
-            DebugPrintf("\n\rBLE turn: ");
+            if(bMyturn)
+            {
+              DebugPrintf("\n\rYour turn: ");
+            }
+            else
+            {
+              DebugPrintf("\n\rBLE turn: ");
+            }
+          }
+        }
+        
+        // Game finished, prepare for next round
+        if(!bGameStart)
+        {
+          bPrintTask = TRUE;
+          for(int i = 0;i<9;i++)
+          {
+            au8TicTacToe[i] = ' ';
           }
         }
       }
