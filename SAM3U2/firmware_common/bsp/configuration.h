@@ -400,7 +400,7 @@ The Blade UART is used for the daughter board interface (serial: 115.2k, 8-N-1) 
 
 
 /* USART Interrupt Enable Register - Page 741 */
-#define BLADE_US_IER_INIT (u32)0x00000000
+#define BLADE_US_IER_INIT (u32)0x00000018
 /*
     31 [0] Reserved
     30 [0] "

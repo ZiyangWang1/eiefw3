@@ -20,7 +20,7 @@ Stop=1
 Freq=10000000
 MultiCoreRunAll=1
 [DebugChecksum]
-Checksum=-53859223
+Checksum=611907833
 [CodeCoverage]
 Enabled=_ 0
 [Exceptions]
@@ -53,7 +53,7 @@ ITMportsTermIO=0
 ITMportsLogFile=0
 ITMlogFile=$PROJ_DIR$\ITM.log
 [array_types]
-Fmt0=u8[128]	1	0
+Fmt0=u8[128]	4	0
 [watch_formats]
 Fmt0={W}3:SpiMaster_u8CurrentByte	3	0
 Fmt1={W}3:SpiMaster_u8RxBuffer	4	0

@@ -133,7 +133,7 @@ void GPIOTE_IRQHandler(void)
   // Read data from spi slave
   if(!CheckSpiTask())
   {
-    SpiMasterReadByte();
+    SpiMasterReadData(2);
   }
   // Clear the interrupt
   NRF_GPIOTE->EVENTS_IN[0] = 0; 
