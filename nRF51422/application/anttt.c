@@ -140,8 +140,8 @@ static void AntttSM_Idle(void)
   // Check receiving buffer for new bytes
   if(Anttt_pu8RxParser != Anttt_pu8RxNextChar)
   {
-    Anttt_pu8RxParser++;
     BPEngenuicsSendData(Anttt_pu8RxParser,1);
+    Anttt_pu8RxParser++;
     
     if(Anttt_pu8RxParser == &Anttt_au8RxBuffer[ANTTT_RX_BUFFER_SIZE])
     {

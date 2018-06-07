@@ -287,12 +287,22 @@ static void UserApp1SM_Idle(void)
   static bool bChecked = TRUE;
   static s32 s32LastPitch = 0;
   static u16 u16Steps = 0;
-  u8 au8LcdMessage1[] = "Pitch:    .  degree";
+  u8 au8LcdMessage1[] = " AACC:    .  m/s^2";
   u8 au8LcdMessage2[] = "Steps:    ";
   s32 s32Pitch = 0;
-  u8 au8StepsData[] = {0,0};
+  static u8 au8StepsData[] = {0,0};
   static u8 u8DelayCounter = 0;
+  static u16 u16SendCounter = 0;
   static bool bSendSRDY = FALSE;
+  
+  u16SendCounter++;
+  
+  if(u16SendCounter == 1000)
+  {
+    u16SendCounter = 0;
+    SspWriteData(UserApp_SPI,2,au8StepsData);
+    bSendSRDY = TRUE;
+  }
   
   if(bSendSRDY)
   {
@@ -363,8 +373,6 @@ static void UserApp1SM_Idle(void)
         au8LcdMessage2[9] = u16Steps % 10 + '0';
         au8StepsData[0] = u16Steps >> 8;
         au8StepsData[1] = u16Steps;
-        SspWriteData(UserApp_SPI,2,au8StepsData);
-        bSendSRDY = TRUE;
         LCDCommand(LCD_CLEAR_CMD);
         LCDMessage(LINE1_START_ADDR,au8LcdMessage1);
         LCDMessage(LINE2_START_ADDR,au8LcdMessage2);

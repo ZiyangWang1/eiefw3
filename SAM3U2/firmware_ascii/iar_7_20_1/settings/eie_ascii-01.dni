@@ -9,7 +9,7 @@ TriggerName=main
 LimitSize=0
 ByteLimit=50
 [DebugChecksum]
-Checksum=1115036975
+Checksum=1046411839
 [Exceptions]
 StopOnUncaught=_ 0
 StopOnThrow=_ 0
@@ -26,7 +26,7 @@ TraceStallIfFIFOFull=0x00000000
 TracePortSize=0x00000000
 [array_types]
 Fmt0=u8[128]	4	0
-Fmt1=u8[2]	1	0
+Fmt1=u8[2]	3	0
 [Log file]
 LoggingEnabled=_ 0
 LogFile=_ ""
@@ -45,7 +45,8 @@ Exclusions=
 [Disassemble mode]
 mode=0
 [Breakpoints2]
-Count=0
+Bp0=_ 1 "EMUL_CODE" "{$PROJ_DIR$\..\..\firmware_common\application\user_app1.c}.303.5" 0 0 1 "" 0 "" 0
+Count=1
 [Aliases]
 Count=0
 SuppressDialog=0
