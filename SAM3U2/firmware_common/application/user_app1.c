@@ -43,17 +43,12 @@ All Global variable names shall start with "G_UserApp1"
 /* New variables */
 volatile u32 G_u32UserApp1Flags;                       /* Global state flags */
 
-static UartPeripheralType* UserApp_Uart;
-static u8 UserApp_au8RxBuffer[USERAPP_RX_BUFFER_SIZE];
-static u8 *UserApp_pu8RxBufferNextChar;  
-static u8 *UserApp_pu8RxBufferParser;
-static u8 UserApp_au8StartupMsg[] = "\n\n\r*** UserApp UART Ready ***\n\r";
-
 static SspPeripheralType* UserApp_SPI;
 static u8 UserApp1_au8RxBuffer[USERAPP_RX_BUFFER_SIZE];
 static u8* UserApp1_pu8RxBufferNextChar = &UserApp1_au8RxBuffer[0];
-static u8* UserApp1_pu8RxBufferParser = &UserApp1_au8RxBuffer [0];
 static u8 UserApp1_au8StartupMsg[] = "\n\n\r*** UserApp SPI Ready ***\n\r";
+bool G_bUserApp1ADCFlag=FALSE;                /* Global ADC flag signal */
+u16 G_u16UserApp1ADCResult=0;                 /* Global ADC result */
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Existing variables (defined in other files -- should all contain the "extern" keyword) */
@@ -99,25 +94,10 @@ Promises:
 */
 void UserApp1Initialize(void)
 {
-  UartConfigurationType sUartConfig;
   SspConfigurationType UserAppSspConfig;
   
+  Adc12AssignCallback(ADC12_CH1, UserApp_AdcCallback);
   LCDCommand(LCD_CLEAR_CMD);
-  for (u16 i = 0; i < USERAPP_RX_BUFFER_SIZE; i++)
-  {
-    UserApp_au8RxBuffer[i] = 0;
-  }
-  
-  UserApp_pu8RxBufferParser    = &UserApp_au8RxBuffer[0];
-  UserApp_pu8RxBufferNextChar  = &UserApp_au8RxBuffer[0]; 
-  
-  sUartConfig.UartPeripheral     = UART;
-  sUartConfig.pu8RxBufferAddress = &UserApp_au8RxBuffer[0];
-  sUartConfig.pu8RxNextByte      = &UserApp_pu8RxBufferNextChar;
-  sUartConfig.u16RxBufferSize    = USERAPP_RX_BUFFER_SIZE;
-  sUartConfig.fnRxCallback       = UserAppRxCallback;
-  
-  UserApp_Uart = UartRequest(&sUartConfig);
   
   UserAppSspConfig.SspPeripheral = USART2;
   UserAppSspConfig.pCsGpioAddress = AT91C_BASE_PIOB;
@@ -134,9 +114,8 @@ void UserApp1Initialize(void)
   
  
   /* If good initialization, set state to Idle */
-  if( UserApp_Uart != NULL && UserApp_SPI != NULL)
+  if(UserApp_SPI != NULL)
   {
-    DebugPrintf(UserApp_au8StartupMsg);
     DebugPrintf(UserApp1_au8StartupMsg);
     UserApp1_StateMachine = UserApp1SM_Idle;
   }
@@ -188,29 +167,16 @@ void SlaveRxFlowCallback(void)
   
 }
 
-
-/*--------------------------------------------------------------------------------------------------------------------
-Function: UserAppRxCallback()
-
+/*----------------------------------------------------------------------------------------------------------------------
+Function UserApp_AdcCallback(u16 u16Result_)
 Description:
-Call back function used when character received.
-
-Requires:
-  - None
-
-Promises:
-  - Safely advances UserApp_pu8RxBufferNextChar.
+The callback function for ADC of CH1
 */
-void UserAppRxCallback(void)
+void UserApp_AdcCallback(u16 u16Result_)
 {
-  /* Safely advance the NextChar pointer */
-  UserApp_pu8RxBufferNextChar++;
-  if(UserApp_pu8RxBufferNextChar == &UserApp_au8RxBuffer[USERAPP_RX_BUFFER_SIZE])
-  {
-    UserApp_pu8RxBufferNextChar = &UserApp_au8RxBuffer[0];
-  }
-  
-} /* end DebugRxCallback() */
+  G_bUserApp1ADCFlag=TRUE;
+  G_u16UserApp1ADCResult=u16Result_;
+}
 
 /*----------------------------------------------------------------------------------------------------------------------
 Function UserApp1RunActiveState()
@@ -280,33 +246,52 @@ State Machine Function Definitions
 /* Wait for ??? */
 static void UserApp1SM_Idle(void)
 {
-  u8 au8CurrentByte[] = " ";
-  static u8 au8SenserData[11];
-  static u8 u8ByteCounter = 0;
-  static u8 u8PackageCounter = 0;
-  static bool bChecked = TRUE;
-  static s32 s32LastPitch = 0;
-  static u16 u16Steps = 0;
-  u8 au8LcdMessage1[] = " AACC:    .  m/s^2";
-  u8 au8LcdMessage2[] = "Steps:    ";
-  s32 s32Pitch = 0;
-  static u8 au8StepsData[] = {0,0};
+  static u8 au8ADCData[] = {0,0};
+  static u8 au8DispalyData[] = "0x  ";
   static u8 u8DelayCounter = 0;
-  static u16 u16SendCounter = 0;
   static bool bSendSRDY = FALSE;
+  static u8 u8Counter=0;
+  static bool bStringlize=FALSE;
+  static u8 u8Timer=0;
+
   
-  u16SendCounter++;
-  
-  if(u16SendCounter == 1000)
+  if(WasButtonPressed(BUTTON0))
   {
-    u16SendCounter = 0;
-    SspWriteData(UserApp_SPI,2,au8StepsData);
-    bSendSRDY = TRUE;
+    
+  if(!bStringlize)
+  {
+    bStringlize=TRUE;
+    au8ADCData[1]=NULL;
   }
   
+  u8Timer++;
+  
+  if(u8Timer==255)
+  {
+    Adc12StartConversion(ADC12_CH1);
+  }
+
+  if(G_bUserApp1ADCFlag)
+  {
+    G_bUserApp1ADCFlag=FALSE;
+    au8ADCData[u8Counter]= (u8)(G_u16UserApp1ADCResult>>4);
+    u8Counter++;
+    
+    if(u8Counter==1)
+    {
+      u8Counter=0;
+      SspWriteData(UserApp_SPI,1,au8ADCData);
+      HexToChar(au8ADCData[0],&au8DispalyData[2]);
+      LCDCommand(LCD_CLEAR_CMD);
+      LCDMessage(LINE1_START_ADDR,au8DispalyData);
+      bSendSRDY = TRUE;
+    }
+  }
+
   if(bSendSRDY)
   {
     u8DelayCounter++;
+    
     if(u8DelayCounter == 5)
     {
       if(AT91C_BASE_PIOB->PIO_ODSR & PB_24_ANT_SRDY)
@@ -320,70 +305,8 @@ static void UserApp1SM_Idle(void)
       u8DelayCounter = 0;
       bSendSRDY = FALSE;
     }
-
   }
   
-  /* Parse any new characters that have come in until no more chars */
-  while( (UserApp_pu8RxBufferParser != UserApp_pu8RxBufferNextChar) )
-  {
-    /* Grab a copy of the current byte and echo it back */
-    au8CurrentByte[0] = *UserApp_pu8RxBufferParser;
-    
-    if(au8CurrentByte[0] == 0x52)
-    {
-      u8PackageCounter++;
-    }
-    
-    if(u8PackageCounter == 20)
-    {
-      u8PackageCounter = 0;
-      bChecked = FALSE;
-    }
-    
-    if(!bChecked)
-    {
-      au8SenserData[u8ByteCounter] = au8CurrentByte[0];
-      u8ByteCounter++;
-      if(u8ByteCounter == 11)
-      {
-        u8ByteCounter = 0;
-        bChecked = TRUE;
-        s32Pitch = ((s32)((s16)(au8SenserData[4]<<8) | au8SenserData[3])) * 1800 / 32768;
-        if((s32LastPitch > 10 && s32Pitch < -10 ) )//|| (s32LastPitch < -10 && s32Pitch > 10))
-        {
-          u16Steps++;
-        }
-        s32LastPitch = s32Pitch;
-        if(s32Pitch < 0)
-        {
-          au8LcdMessage1[6] = '-';
-          s32Pitch *= -1;
-        }
-        else
-        {
-          au8LcdMessage1[6] = '+';
-        }
-        au8LcdMessage1[7] = s32Pitch / 1000 + '0';
-        au8LcdMessage1[8] = s32Pitch % 1000 / 100 + '0';
-        au8LcdMessage1[9] = s32Pitch % 100 / 10 + '0';
-        au8LcdMessage1[11] = s32Pitch % 10 + '0';
-        au8LcdMessage2[6] = u16Steps / 1000 + '0';
-        au8LcdMessage2[7] = u16Steps % 1000 / 100 + '0';
-        au8LcdMessage2[8] = u16Steps % 100 / 10 + '0';
-        au8LcdMessage2[9] = u16Steps % 10 + '0';
-        au8StepsData[0] = u16Steps >> 8;
-        au8StepsData[1] = u16Steps;
-        LCDCommand(LCD_CLEAR_CMD);
-        LCDMessage(LINE1_START_ADDR,au8LcdMessage1);
-        LCDMessage(LINE2_START_ADDR,au8LcdMessage2);
-      }
-    }
-    
-    UserApp_pu8RxBufferParser++;
-    if(UserApp_pu8RxBufferParser >= &UserApp_au8RxBuffer[USERAPP_RX_BUFFER_SIZE])
-    {
-      UserApp_pu8RxBufferParser = &UserApp_au8RxBuffer[0];
-    }
   }
 
 } /* end UserApp1SM_Idle() */

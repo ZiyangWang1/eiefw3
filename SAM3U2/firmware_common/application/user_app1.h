@@ -39,10 +39,10 @@ Function Declarations
 /*--------------------------------------------------------------------------------------------------------------------*/
 void UserApp1Initialize(void);
 void UserApp1RunActiveState(void);
-void UserAppRxCallback(void);
 void SlaveTxFlowCallback(void);
 void SlaveRxFlowCallback(void);
 void HexToChar(u8 u8HexInput_,u8* pu8Buffer);
+void UserApp_AdcCallback(u16 u16Result_);
 
 /*------------------------------------------------------------------------------------------------------------------*/
 /*! @privatesection */                                                                                            
