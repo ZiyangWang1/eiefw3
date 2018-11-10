@@ -45,6 +45,7 @@ volatile u32 G_u32UserApp1Flags;                       /* Global state flags */
 
 bool G_bUserApp1ADCFlag=FALSE;                /* Global ADC flag signal */
 u16 G_u16UserApp1ADCResult=0;                 /* Global ADC result */
+u8 sta;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Existing variables (defined in other files -- should all contain the "extern" keyword) */
@@ -90,6 +91,47 @@ Promises:
 */
 void UserApp1Initialize(void)
 {
+    /* Enable PIO and configurate */
+  AT91C_BASE_PIOA->PIO_PER = PA_03_C1_MISO;
+  AT91C_BASE_PIOA->PIO_PER = PA_04_C1_CSN;
+  AT91C_BASE_PIOA->PIO_PER = PA_05_C1_IRQ;
+  AT91C_BASE_PIOA->PIO_PER = PA_06_C1_SCK;
+  AT91C_BASE_PIOA->PIO_PER = PA_07_C1_MOSI;
+  AT91C_BASE_PIOA->PIO_PER = PA_08_C1_CE;
+  AT91C_BASE_PIOA->PIO_PER = PA_09_C1_GND;
+  AT91C_BASE_PIOA->PIO_PER = PA_10_C1_VCC;
+  AT91C_BASE_PIOA->PIO_PER = PA_11_C2_GND;
+  AT91C_BASE_PIOA->PIO_PER = PA_12_C2_VCC;
+  AT91C_BASE_PIOA->PIO_PER = PA_14_C2_CE;
+  AT91C_BASE_PIOA->PIO_PER = PA_15_C2_CSN;
+  AT91C_BASE_PIOB->PIO_PER = PB_05_C2_SCK;
+  AT91C_BASE_PIOB->PIO_PER = PB_06_C2_MOSI;
+  AT91C_BASE_PIOB->PIO_PER = PB_07_C2_IRQ;
+  AT91C_BASE_PIOB->PIO_PER = PB_08_C2_MISO;
+  
+  AT91C_BASE_PIOA->PIO_OER = PA_04_C1_CSN;
+  AT91C_BASE_PIOA->PIO_OER = PA_06_C1_SCK;
+  AT91C_BASE_PIOA->PIO_OER = PA_07_C1_MOSI;
+  AT91C_BASE_PIOA->PIO_OER = PA_08_C1_CE;
+  AT91C_BASE_PIOA->PIO_OER = PA_09_C1_GND;
+  AT91C_BASE_PIOA->PIO_OER = PA_10_C1_VCC;
+  AT91C_BASE_PIOA->PIO_OER = PA_11_C2_GND;
+  AT91C_BASE_PIOA->PIO_OER = PA_12_C2_VCC;
+  AT91C_BASE_PIOA->PIO_OER = PA_14_C2_CE;
+  AT91C_BASE_PIOA->PIO_OER = PA_15_C2_CSN;
+  AT91C_BASE_PIOB->PIO_OER = PB_05_C2_SCK;
+  AT91C_BASE_PIOB->PIO_OER = PB_06_C2_MOSI;
+  
+  AT91C_BASE_PIOB->PIO_PPUER = PA_10_C1_VCC;
+  AT91C_BASE_PIOB->PIO_PPUER = PA_12_C2_VCC;
+  
+  /* Initialize the GPIO ports */
+  
+  AT91C_BASE_PIOA->PIO_CODR = PA_09_C1_GND;
+  AT91C_BASE_PIOA->PIO_SODR = PA_10_C1_VCC;
+  AT91C_BASE_PIOA->PIO_CODR = PA_11_C2_GND;
+  AT91C_BASE_PIOA->PIO_SODR = PA_12_C2_VCC;
+  
   
   Adc12AssignCallback(ADC12_CH2, UserApp_AdcCallback);
   LCDCommand(LCD_CLEAR_CMD);
@@ -142,6 +184,168 @@ void UserApp1RunActiveState(void)
 /*--------------------------------------------------------------------------------------------------------------------*/
 /* Private functions                                                                                                  */
 /*--------------------------------------------------------------------------------------------------------------------*/
+
+/******************************************************************************************
+延时函数
+******************************************************************************************/
+void inerDelay_us(unsigned char n)
+{
+  for(;n>0;n--);
+}
+
+//****************************************************************************************
+//NRF24L01初始化
+//***************************************************************************************/
+void init_NRF24L01(void)
+{
+  inerDelay_us(100);
+  AT91C_BASE_PIOA->PIO_CODR = PA_08_C1_CE;    // chip enable
+  AT91C_BASE_PIOA->PIO_SODR = PA_04_C1_CSN;   // Spi  disable 
+  AT91C_BASE_PIOA->PIO_CODR = PA_06_C1_SCK;   // 
+  SPI_Write_Buf(WRITE_REG + TX_ADDR, TX_ADDRESS, TX_ADR_WIDTH);    // 写本地地址	
+  SPI_Write_Buf(WRITE_REG + RX_ADDR_P0, RX_ADDRESS, RX_ADR_WIDTH); // 写接收端地址
+  SPI_RW_Reg(WRITE_REG + EN_AA, 0x01);      //  频道0自动	ACK应答允许	
+  SPI_RW_Reg(WRITE_REG + EN_RXADDR, 0x01);  //  允许接收地址只有频道0，如果需要多频道可以参考Page21  
+  SPI_RW_Reg(WRITE_REG + RF_CH, 0);        //   设置信道工作为2.4GHZ，收发必须一致
+  SPI_RW_Reg(WRITE_REG + RX_PW_P0, RX_PLOAD_WIDTH); //设置接收数据长度，本次设置为32字节
+  SPI_RW_Reg(WRITE_REG + RF_SETUP, 0x07);   		//设置发射速率为1MHZ，发射功率为最大值0dB
+}
+
+/****************************************************************************************************
+函数：uint SPI_RW(uint uchar)
+功能：NRF24L01的SPI写时序
+****************************************************************************************************/
+u8 SPI_RW(u8 uchar)
+{
+  u8 bit_ctr;
+  for(bit_ctr=0;bit_ctr<8;bit_ctr++) // output 8-bit
+  {
+    if(uchar & 0x80)
+    {
+      AT91C_BASE_PIOA->PIO_SODR = PA_07_C1_MOSI;
+    }
+    else
+    {
+      AT91C_BASE_PIOA->PIO_CODR = PA_07_C1_MOSI;
+    }
+    
+    uchar = (uchar << 1);           // shift next bit into MSB..
+    AT91C_BASE_PIOA->PIO_SODR = PA_06_C1_SCK;// Set SCK high..
+    uchar |= AT91C_BASE_PIOA->PIO_PDSR & PA_03_C1_MISO;// capture current MISO bit
+    AT91C_BASE_PIOA->PIO_CODR = PA_06_C1_SCK;// ..then set SCK low again
+  }
+  return(uchar);           		  // return read uchar
+}
+
+/****************************************************************************************************
+函数：uchar SPI_Read(uchar reg)
+功能：NRF24L01的SPI时序
+****************************************************************************************************/
+u8 SPI_Read(u8 reg)
+{
+  u8 reg_val;
+  
+  AT91C_BASE_PIOA->PIO_CODR = PA_04_C1_CSN;// CSN low, initialize SPI communication...
+  SPI_RW(reg);            // Select register to read from..
+  reg_val = SPI_RW(0);    // ..then read registervalue
+  AT91C_BASE_PIOA->PIO_SODR = PA_04_C1_CSN;// CSN high, terminate SPI communication
+  
+  return(reg_val);        // return register value
+}
+
+/****************************************************************************************************/
+/*功能：NRF24L01读写寄存器函数*/
+/****************************************************************************************************/
+u8 SPI_RW_Reg(u8 reg, u8 value)
+{
+  u8 status;
+  
+  AT91C_BASE_PIOA->PIO_CODR = PA_04_C1_CSN;// CSN low, init SPI transaction
+  status = SPI_RW(reg);      // select register
+  SPI_RW(value);             // ..and write value to it..
+  AT91C_BASE_PIOA->PIO_SODR = PA_04_C1_CSN;// CSN high again
+  
+  return(status);            // return nRF24L01 status uchar
+}
+
+/****************************************************************************************************/
+/*函数：uint SPI_Read_Buf(uchar reg, uchar *pBuf, uchar uchars)*/
+/*功能: 用于读数据，reg：为寄存器地址，pBuf：为待读出数据地址，uchars：读出数据的个数*/
+/****************************************************************************************************/
+u8 SPI_Read_Buf(u8 reg, u8 *pBuf, u8 uchars)
+{
+  u8 status,uchar_ctr;
+
+  AT91C_BASE_PIOA->PIO_CODR = PA_04_C1_CSN;// Set CSN low, init SPI tranaction
+  status = SPI_RW(reg);       		// Select register to write to and read status uchar
+
+  for(uchar_ctr=0;uchar_ctr<uchars;uchar_ctr++)
+    pBuf[uchar_ctr] = SPI_RW(0);    // 
+
+  AT91C_BASE_PIOA->PIO_SODR = PA_04_C1_CSN;                          
+
+  return(status);                    // return nRF24L01 status uchar
+}
+
+/*********************************************************************************************************/
+/*函数：uint SPI_Write_Buf(uchar reg, uchar *pBuf, uchar uchars)*/
+/*功能: 用于写数据：为寄存器地址，pBuf：为待写入数据地址，uchars：写入数据的个数*/
+/*********************************************************************************************************/
+u8 SPI_Write_Buf(u8 reg, u8 *pBuf, u8 uchars)
+{
+  u8 status,uchar_ctr;
+
+  AT91C_BASE_PIOA->PIO_CODR = PA_04_C1_CSN;//SPI使能       
+  status = SPI_RW(reg);   
+  for(uchar_ctr=0; uchar_ctr<uchars; uchar_ctr++) //
+    SPI_RW(*pBuf++);
+  AT91C_BASE_PIOA->PIO_SODR = PA_04_C1_CSN;//关闭SPI
+  return(status);    // 
+}
+
+/****************************************************************************************************/
+/*函数：void SetRX_Mode(void)*/
+/*功能：数据接收配置 */
+/****************************************************************************************************/
+void SetRX_Mode(void)
+{
+  AT91C_BASE_PIOA->PIO_CODR = PA_08_C1_CE;
+  SPI_RW_Reg(WRITE_REG + CONFIG, 0x0f);// IRQ收发完成中断响应，16位CRC	，主接收
+  AT91C_BASE_PIOA->PIO_SODR = PA_08_C1_CE;
+  inerDelay_us(130);
+}
+
+/******************************************************************************************************/
+/*函数：unsigned char nRF24L01_RxPacket(unsigned char* rx_buf)*/
+/*功能：数据读取后放如rx_buf接收缓冲区中*/
+/******************************************************************************************************/
+unsigned char nRF24L01_RxPacket(unsigned char* rx_buf)
+{
+  unsigned char revale=0;
+  sta=SPI_Read(STATUS);	// 读取状态寄存其来判断数据接收状况
+  if(RX_DR)				// 判断是否接收到数据
+  {
+    AT91C_BASE_PIOA->PIO_CODR = PA_08_C1_CE;//SPI使能
+    SPI_Read_Buf(RD_RX_PLOAD,rx_buf,TX_PLOAD_WIDTH);// read receive payload from RX_FIFO buffer
+    revale =1;			//读取数据完成标志
+  }
+  SPI_RW_Reg(WRITE_REG+STATUS,sta);   //接收到数据后RX_DR,TX_DS,MAX_PT都置高为1，通过写1来清楚中断标志
+  return revale;
+}
+
+/***********************************************************************************************************/
+/*函数：void nRF24L01_TxPacket(unsigned char * tx_buf)*/
+/*功能：发送 tx_buf中数据*/
+/**********************************************************************************************************/
+void nRF24L01_TxPacket(unsigned char * tx_buf)
+{
+  AT91C_BASE_PIOA->PIO_CODR = PA_08_C1_CE;//StandBy I模式	
+  SPI_Write_Buf(WRITE_REG + RX_ADDR_P0, TX_ADDRESS, TX_ADR_WIDTH); // 装载接收端地址
+  SPI_Write_Buf(WR_TX_PLOAD, tx_buf, TX_PLOAD_WIDTH); 			 // 装载数据	
+  SPI_RW_Reg(WRITE_REG + CONFIG, 0x0e); // IRQ收发完成中断响应，16位CRC，主发送
+  AT91C_BASE_PIOA->PIO_SODR = PA_08_C1_CE;//置高CE，激发数据发送
+  inerDelay_us(10);
+}
 
 /**********************************************************************************************************************
 State Machine Function Definitions
