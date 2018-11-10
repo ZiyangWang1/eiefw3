@@ -43,10 +43,6 @@ All Global variable names shall start with "G_UserApp1"
 /* New variables */
 volatile u32 G_u32UserApp1Flags;                       /* Global state flags */
 
-static SspPeripheralType* UserApp_SPI;
-static u8 UserApp1_au8RxBuffer[USERAPP_RX_BUFFER_SIZE];
-static u8* UserApp1_pu8RxBufferNextChar = &UserApp1_au8RxBuffer[0];
-static u8 UserApp1_au8StartupMsg[] = "\n\n\r*** UserApp SPI Ready ***\n\r";
 bool G_bUserApp1ADCFlag=FALSE;                /* Global ADC flag signal */
 u16 G_u16UserApp1ADCResult=0;                 /* Global ADC result */
 
@@ -94,29 +90,13 @@ Promises:
 */
 void UserApp1Initialize(void)
 {
-  SspConfigurationType UserAppSspConfig;
   
-  Adc12AssignCallback(ADC12_CH1, UserApp_AdcCallback);
+  Adc12AssignCallback(ADC12_CH2, UserApp_AdcCallback);
   LCDCommand(LCD_CLEAR_CMD);
   
-  UserAppSspConfig.SspPeripheral = USART2;
-  UserAppSspConfig.pCsGpioAddress = AT91C_BASE_PIOB;
-  UserAppSspConfig.u32CsPin = AT91C_PIO_PB22;
-  UserAppSspConfig.eSspMode = SPI_SLAVE_FLOW_CONTROL;
-  UserAppSspConfig.eBitOrder = LSB_FIRST;
-  UserAppSspConfig.fnSlaveTxFlowCallback = SlaveTxFlowCallback;
-  UserAppSspConfig.fnSlaveRxFlowCallback = SlaveRxFlowCallback;
-  UserAppSspConfig.pu8RxBufferAddress = &UserApp1_au8RxBuffer[0];
-  UserAppSspConfig.ppu8RxNextByte = &UserApp1_pu8RxBufferNextChar;
-  UserAppSspConfig.u16RxBufferSize = USERAPP_RX_BUFFER_SIZE;
- 
-  UserApp_SPI = SspRequest(&UserAppSspConfig);
-  
- 
   /* If good initialization, set state to Idle */
-  if(UserApp_SPI != NULL)
+  if(1)
   {
-    DebugPrintf(UserApp1_au8StartupMsg);
     UserApp1_StateMachine = UserApp1SM_Idle;
   }
   else
@@ -126,46 +106,6 @@ void UserApp1Initialize(void)
   }
 
 } /* end UserApp1Initialize() */
-
-/*--------------------------------------------------------------------------------------------------------------------
-Function: SlaveTxFlowCallback
-
-Description:
-
-
-Requires:
-  -
-
-Promises:
-  - 
-*/
-void SlaveTxFlowCallback(void)
-{
-  
-}
-
-/*--------------------------------------------------------------------------------------------------------------------
-Function: SlaveRxFlowCallback
-
-Description:
-Call back function used when character received.
-
-Requires:
-  - None
-
-Promises:
-  - Safely advances UserApp1_pu8RxBufferNextChar.
-*/
-void SlaveRxFlowCallback(void)
-{
-  /* Safely advances the NextChar pointer */
-  UserApp1_pu8RxBufferNextChar++;
-  if(UserApp1_pu8RxBufferNextChar == &UserApp1_au8RxBuffer[USERAPP_RX_BUFFER_SIZE])
-  {
-    UserApp1_pu8RxBufferNextChar = &UserApp1_au8RxBuffer[0];
-  }
-  
-}
 
 /*----------------------------------------------------------------------------------------------------------------------
 Function UserApp_AdcCallback(u16 u16Result_)
@@ -203,41 +143,6 @@ void UserApp1RunActiveState(void)
 /* Private functions                                                                                                  */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-/*--------------------------------------------------------------------------------------------------------------------
-Function: HexToChar
-
-Description:
-Change a 8-bit-number to Hex-ascii formation
-
-Requires:
-  - A 8-bit-number input
-  - A pointer to store location
-
-Promises:
-  - The store location needs at least 2 bytes
-*/
-void HexToChar(u8 u8HexInput_,u8* pu8Buffer)
-{
-  if(u8HexInput_ / 16 < 10)
-  {
-    *pu8Buffer = u8HexInput_ / 16 + '0';
-  }
-  else
-  {
-    *pu8Buffer = u8HexInput_ / 16 - 10 + 'A';
-  }
-  
-  if(u8HexInput_ % 16 < 10)
-  {
-    *(pu8Buffer+1) = u8HexInput_ % 16 + '0';
-  }
-  else
-  {
-    *(pu8Buffer+1) = u8HexInput_ % 16 - 10 + 'A';
-  }
-  return;
-}
-
 /**********************************************************************************************************************
 State Machine Function Definitions
 **********************************************************************************************************************/
@@ -246,67 +151,39 @@ State Machine Function Definitions
 /* Wait for ??? */
 static void UserApp1SM_Idle(void)
 {
-  static u8 au8ADCData[] = {0,0};
-  static u8 au8DispalyData[] = "0x  ";
-  static u8 u8DelayCounter = 0;
-  static bool bSendSRDY = FALSE;
+  static u8 au8ADCData[21] = {0};
   static u8 u8Counter=0;
-  static bool bStringlize=FALSE;
-  static u8 u8Timer=0;
-
+  static u16 u16Timer=0;
+  static bool bSend=FALSE;
   
-  if(WasButtonPressed(BUTTON0))
+  if(IsButtonPressed(BUTTON0))
   {
-    
-  if(!bStringlize)
-  {
-    bStringlize=TRUE;
-    au8ADCData[1]=NULL;
+    bSend=TRUE;
   }
   
-  u8Timer++;
-  
-  if(u8Timer==255)
+  if(bSend)
   {
-    Adc12StartConversion(ADC12_CH1);
-  }
+    u16Timer++;
+    Adc12StartConversion(ADC12_CH2);
 
-  if(G_bUserApp1ADCFlag)
-  {
-    G_bUserApp1ADCFlag=FALSE;
-    au8ADCData[u8Counter]= (u8)(G_u16UserApp1ADCResult>>4);
-    u8Counter++;
-    
-    if(u8Counter==1)
+    if(G_bUserApp1ADCFlag)
     {
-      u8Counter=0;
-      SspWriteData(UserApp_SPI,1,au8ADCData);
-      HexToChar(au8ADCData[0],&au8DispalyData[2]);
-      LCDCommand(LCD_CLEAR_CMD);
-      LCDMessage(LINE1_START_ADDR,au8DispalyData);
-      bSendSRDY = TRUE;
+      G_bUserApp1ADCFlag=FALSE;
+      au8ADCData[u8Counter]= (u8)(G_u16UserApp1ADCResult>>4)+1;
+      u8Counter++;
+      
+      if(u8Counter==20)
+      {
+        DebugPrintf(au8ADCData);
+        u8Counter=0;
+      }
     }
-  }
-
-  if(bSendSRDY)
-  {
-    u8DelayCounter++;
     
-    if(u8DelayCounter == 5)
+    if(u16Timer==40000)
     {
-      if(AT91C_BASE_PIOB->PIO_ODSR & PB_24_ANT_SRDY)
-      {
-       AT91C_BASE_PIOB->PIO_CODR = PB_24_ANT_SRDY;
-      }
-      else
-      {
-       AT91C_BASE_PIOB->PIO_SODR = PB_24_ANT_SRDY;
-      }
-      u8DelayCounter = 0;
-      bSendSRDY = FALSE;
+      bSend=FALSE;
+      u16Timer=0;
     }
-  }
-  
   }
 
 } /* end UserApp1SM_Idle() */

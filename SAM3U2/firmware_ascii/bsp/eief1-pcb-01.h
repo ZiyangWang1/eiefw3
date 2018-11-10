@@ -44,7 +44,7 @@ Type Definitions
 
 /*!@brief To get 1 ms tick, need SYSTICK_COUNT to be 0.001 * SysTick Clock.  
 Should be 6000 for 48MHz CCLK. */
-#define SYSTICK_COUNT             (u32)(0.001 * (CCLK_VALUE / SYSTICK_DIVIDER) )
+#define SYSTICK_COUNT             (u32)(0.000125 * (CCLK_VALUE / SYSTICK_DIVIDER) )
 
 
 /***********************************************************************************************************************
