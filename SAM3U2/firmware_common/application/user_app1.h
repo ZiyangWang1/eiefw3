@@ -30,8 +30,10 @@ Type Definitions
 #define PA_06_C1_SCK     PA_06_HSMCI_MCDA1
 #define PA_07_C1_MOSI    PA_07_HSMCI_MCDA2 
 #define PA_08_C1_CE      PA_08_SD_CS_MCDA3 
-#define PA_09_C1_GND     PA_09_I2C_SDA 
-#define PA_10_C1_VCC     PA_10_I2C_SCL
+
+//#define PA_09_C1_GND     PA_08_SD_CS_MCDA3 
+//#define PA_10_C1_VCC     PA_04_HSMCI_MCCDA
+
 #define PA_11_C2_GND     PA_11_BLADE_UPIMO
 #define PA_12_C2_VCC     PA_12_BLADE_UPOMI 
 #define PA_14_C2_CE      PA_14_BLADE_MOSI
@@ -46,8 +48,7 @@ Type Definitions
 #define RX_ADR_WIDTH    5   	// 5 uints RX address width
 #define TX_PLOAD_WIDTH  20  	// 20 uints TX payload
 #define RX_PLOAD_WIDTH  20  	// 20 uints TX payload
-u8 TX_ADDRESS[TX_ADR_WIDTH]= {0x34,0x43,0x10,0x10,0x01};	//±¾µØµØÖ·
-u8 RX_ADDRESS[RX_ADR_WIDTH]= {0x34,0x43,0x10,0x10,0x01};	//½ÓÊÕµØÖ·
+
 //***************************************NRF24L01¼Ä´æÆ÷Ö¸Áî*******************************************************
 #define READ_REG        0x00  	// ¶Á¼Ä´æÆ÷Ö¸Áî
 #define WRITE_REG       0x20 	// Ð´¼Ä´æÆ÷Ö¸Áî
@@ -109,16 +110,16 @@ void UserApp_AdcCallback(u16 u16Result_);
 /*! @privatesection */                                                                                            
 /*--------------------------------------------------------------------------------------------------------------------*/
 void inerDelay_us(unsigned char n);
-void init_NRF24L01(void);
-u8 SPI_RW(u8 uchar);
-u8 SPI_Read(u8 reg);
-u8 SPI_RW_Reg(u8 reg, u8 value);
-u8 SPI_Read_Buf(u8 reg, u8 *pBuf, u8 uchars);
-u8 SPI_Write_Buf(u8 reg, u8 *pBuf, u8 uchars);
-void SetRX_Mode(void);
-unsigned char nRF24L01_RxPacket(unsigned char* rx_buf);
-void nRF24L01_TxPacket(unsigned char * tx_buf);
+void UserApp1_init_NRF24L01(void);
+u8 UserApp1_SPI_RW(u8 uchar);
+u8 UserApp1_SPI_Read(u8 reg);
+u8 UserApp1_SPI_RW_Reg(u8 reg, u8 value);
+u8 UserApp1_SPI_Read_Buf(u8 reg, u8 *pBuf, u8 uchars);
+u8 UserApp1_SPI_Write_Buf(u8 reg, u8 *pBuf, u8 uchars);
+void UserApp1_nRF24L01_TxPacket(unsigned char * tx_buf);
 
+void SPI_Write(u8 uchar);
+void SPI_Write_Buf(u8 *pBuf, u8 uchars);
 /***********************************************************************************************************************
 State Machine Declarations
 ***********************************************************************************************************************/

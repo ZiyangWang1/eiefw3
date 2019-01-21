@@ -9,7 +9,7 @@ TriggerName=main
 LimitSize=0
 ByteLimit=50
 [DebugChecksum]
-Checksum=-789290836
+Checksum=660810726
 [Exceptions]
 StopOnUncaught=_ 0
 StopOnThrow=_ 0
@@ -26,7 +26,10 @@ TraceStallIfFIFOFull=0x00000000
 TracePortSize=0x00000000
 [array_types]
 Fmt0=u8[128]	4	0
-Fmt1=u8[2]	3	0
+Fmt1=u8[21]	1	0
+Fmt2=u8[2]	3	0
+[watch_formats]
+Fmt0={W}3:sta	1	0
 [Log file]
 LoggingEnabled=_ 0
 LogFile=_ ""

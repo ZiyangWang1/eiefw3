@@ -42,7 +42,14 @@ void UserApp2RunActiveState(void);
 /*------------------------------------------------------------------------------------------------------------------*/
 /*! @privatesection */                                                                                            
 /*--------------------------------------------------------------------------------------------------------------------*/
-
+void UserApp2_init_NRF24L01(void);
+u8 UserApp2_SPI_RW(u8 uchar);
+u8 UserApp2_SPI_Read(u8 reg);
+u8 UserApp2_SPI_RW_Reg(u8 reg, u8 value);
+u8 UserApp2_SPI_Read_Buf(u8 reg, u8 *pBuf, u8 uchars);
+u8 UserApp2_SPI_Write_Buf(u8 reg, u8 *pBuf, u8 uchars);
+unsigned char UserApp2_nRF24L01_RxPacket(unsigned char* rx_buf);
+u8 NRF24L01_Check(void);
 
 /***********************************************************************************************************************
 State Machine Declarations
